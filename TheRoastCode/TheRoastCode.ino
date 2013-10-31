@@ -7,7 +7,7 @@
 #include <Wire.h>
 #include "RTClib.h"
 #include "Adafruit_MAX31855.h"
-
+// We are modifying this code
 // Define library look ups
 Adafruit_MAX31855 thermocouple (thermoCLK, thermoCS,  thermoDO);
 Adafruit_MAX31855 thermocouple1(thermoCLK, thermoCS1, thermoDO);
