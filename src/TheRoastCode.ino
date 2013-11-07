@@ -34,7 +34,10 @@
    - Get button input for: start/stop, increase time, change roast
    - Add logging components via Serial/shield
    - Run code by Dr. Rinker, Erik, Jordan
+   - Add display: NHD-0420D3Z-FL-GBW
    - Add LED status lights
+     - 5v LED use 100 Ohm
+     - 12v LED use 470 Ohm
 
  */
 
@@ -82,7 +85,7 @@ const int FAN_PIN = 9;  // PWM one of 3, 5, 6, 9, 10, or 11
 const int HEAT_PIN = 10;  // Whatever we choose
 const int MOTOR_PIN = 11;  // Ditto
 
-const int THERMO_DO = 3;
+const int THERMO_DO = 3;  // Digital
 const int THERMO_CLK = 4;
 const int THERMO_CS0 = 5;
 const int THERMO_CS1 = 6;
@@ -95,11 +98,11 @@ const int TEMP_STEP = 5;
 
 const int ROAST_TIME = 20;  // minutes
 const int RAMP_STEPS = 40;  // divisor of ramp time
-const int HEAT_FULL_TIME = 0.25 * ROAST_TIME;
-const int RAMP_TIME_INTERVAL = HEAT_FULL_TIME / RAMP_STEPS;
-const int RAMP_HEAT_INTERVAL = (TEMP_MAX - TEMP_READY) / RAMP_STEPS;
+const int HEAT_FULL_TIME = (0.25 * ROAST_TIME);
+const int RAMP_TIME_INTERVAL = (HEAT_FULL_TIME / RAMP_STEPS);
+const int RAMP_HEAT_INTERVAL = ((TEMP_MAX - TEMP_READY) / RAMP_STEPS);
 const int SENSOR_SAMPLING_TIME = 1000;  // ms
-const int FAN_FULL_TIME = 0.5 * ROAST_TIME;
+const int FAN_FULL_TIME = (0.5 * ROAST_TIME);
 const int FAN_PARTIAL_PERCENT = 50;
 const int FAN_FULL_PERCENT = 100;
 
@@ -127,13 +130,13 @@ double get_temp(int i);
 
 // helper functions
 unsigned long minutes_to_ms(int minutes) {
-  unsigned long total_ms = minutes * MS_IN_MINUTE;
+  unsigned long total_ms = (minutes * MS_IN_MINUTE);
   return total_ms;
 }
 
-double ms_to_minutes (unsigned long ms) {
-  double total_ms = ms / MS_IN_MINUTE;
-  return total_ms;
+double ms_to_minutes(unsigned long ms) {
+  double total_minutes = (double(ms) / double(MS_IN_MINUTE));
+  return total_minutes;
 }
 
 int percent_to_duty(int percent) {
@@ -150,7 +153,7 @@ void set_heat(uint8_t state) {
 void heat_idle() {
   if (heat_state != HEAT_IDLE) {
 #ifdef DEBUG
-    Serial.print(ms_to_minutes(millis()));
+    Serial.print(millis());
     Serial.print(": Turning off heat\n");
 #endif
     heat_off();
@@ -165,7 +168,7 @@ void heat_off() {
 void heat_on() {
   if (heat_state != HEAT_IDLE) {
 #ifdef DEBUG
-    Serial.print(ms_to_minutes(millis()));
+    Serial.print(millis());
     Serial.print(": Turning on heat\n");
 #endif
     set_heat(HIGH);
@@ -180,7 +183,7 @@ void set_fan(int percent) {
 void fan_idle() {
   if (fan_state != FAN_IDLE) {
 #ifdef DEBUG
-    Serial.print(ms_to_minutes(millis()));
+    Serial.print(millis());
     Serial.print(": Setting fan to zero\n");
 #endif
     set_fan(0);
@@ -191,7 +194,7 @@ void fan_idle() {
 void fan_partial() {
   if (fan_state != FAN_PARTIAL) {
 #ifdef DEBUG
-    Serial.print(ms_to_minutes(millis()));
+    Serial.print(millis());
     Serial.print(": Setting fan to partial\n");
 #endif
     set_fan(FAN_PARTIAL_PERCENT);
@@ -202,7 +205,7 @@ void fan_partial() {
 void fan_full() {
   if (fan_state != FAN_FULL) {
 #ifdef DEBUG
-    Serial.print(ms_to_minutes(millis()));
+    Serial.print(millis());
     Serial.print(": Settin fan to full\n");
 #endif
     set_fan(FAN_FULL_PERCENT);
@@ -218,7 +221,7 @@ void set_motor(uint8_t state) {
 void motor_off() {
   if (motor_state != MOTOR_OFF) {
 #ifdef DEBUG
-    Serial.print(ms_to_minutes(millis()));
+    Serial.print(millis());
     Serial.print(": Turning motor off\n");
 #endif
     set_motor(LOW);
@@ -229,11 +232,11 @@ void motor_off() {
 void motor_on() {
   if (motor_state != MOTOR_ON) {
 #ifdef DEBUG
-    Serial.print(ms_to_minutes(millis()));
+    Serial.print(millis());
     Serial.print(": Turning motor on\n");
 #endif
     set_motor(HIGH);
-    motor_state == MOTOR_ON;
+    motor_state = MOTOR_ON;
   }
 }
 
@@ -241,7 +244,7 @@ double get_temp(int i) {
   double temp = temps[i].readCelsius();
   if (isnan(temp)) {
 #ifdef TEMPS
-    Serial.print(ms_to_minutes(millis()));
+    Serial.print(millis());
     Serial.println(": Thermocouple error ");
     Serial.println(i);
     Serial.println("\n");
@@ -251,12 +254,12 @@ double get_temp(int i) {
     return 0;
   } else {
 #ifdef TEMPS
-    Serial.print(ms_to_minutes(millis()));
-    Serial.println(": Temp ");
-    Serial.println(i);
-    Serial.println(" = ");
-    Serial.println(temp);
-    Serial.println("\n");
+    Serial.print(millis());
+    Serial.print(": Temp ");
+    Serial.print(i);
+    Serial.print(" = ");
+    Serial.print(temp);
+    Serial.print("\n");
 #endif
     return temp;
   }
@@ -265,11 +268,16 @@ double get_temp(int i) {
 // Define set-up loop
 void setup() {
   Serial.begin(9600);
-  Serial.print(ms_to_minutes(millis()));
+  Serial.print(millis());
   Serial.print(": System on\n");
 
   pinMode(HEAT_PIN, OUTPUT);
   pinMode(MOTOR_PIN, OUTPUT);
+
+  heat_off();
+  heat_idle();
+  fan_idle();
+  motor_off();
 
   delay(500);
 
@@ -289,25 +297,17 @@ void loop() {
 
   if (elapsed_time > next_read) {
 #ifdef DEBUG
-    Serial.print(ms_to_minutes(millis()));
+    Serial.print(millis());
     Serial.print(": Reading sensors\n");
 #endif
     next_read += SENSOR_SAMPLING_TIME;
     internal_temp = get_temp(INTERNAL_TEMP);
   }
 
-#ifdef AUTOSTART
-  if ((elapsed_time > 5000) && (roast_state == ROAST_IDLE)) {
-    Serial.print(ms_to_minutes(millis()));
-    Serial.print(": Auto-starting to PREHEAT\n");
-    roast_state = ROAST_PREHEAT;
-  }
-#endif
-
   switch (roast_state) {
   case ROAST_IDLE:
 #ifdef DEBUG
-    Serial.print(ms_to_minutes(millis()));
+    Serial.print(millis());
     Serial.print(": ROAST_IDLE\n");
 #endif
     heat_idle();
@@ -317,14 +317,17 @@ void loop() {
     break;
   case ROAST_PREHEAT:
 #ifdef DEBUG
-    Serial.print(ms_to_minutes(millis()));
+    Serial.print(millis());
     Serial.print(": ROAST_PREHEAT\n");
 #endif
     motor_on();
-    heat_state = HEAT_PRE;
+    if (heat_state == HEAT_IDLE) {
+      heat_state = HEAT_PRE;
+      heat_on();
+    }
   case ROAST_ROASTING:
 #ifdef DEBUG
-    Serial.print(ms_to_minutes(millis()));
+    Serial.print(millis());
     Serial.print(": ROAST_ROASTING\n");
 #endif
     motor_on();
@@ -336,7 +339,7 @@ void loop() {
   case ROAST_COOLING:
     // Turn off heat, max fans until cool
 #ifdef DEBUG
-    Serial.print(ms_to_minutes(millis()));
+    Serial.print(millis());
     Serial.print(": ROAST_COOLING\n");
 #endif
     heat_idle();
@@ -348,36 +351,38 @@ void loop() {
   switch (heat_state) {
   case HEAT_IDLE:
 #ifdef DEBUG
-    Serial.print(ms_to_minutes(millis()));
+    Serial.print(millis());
     Serial.print(": HEAT_IDLE\n");
 #endif
+    heat_off();
     break;
   case HEAT_PRE:
     // Get temperature to TEMP_READY
 #ifdef DEBUG
-    Serial.print(ms_to_minutes(millis()));
+    Serial.print(millis());
     Serial.print(": HEAT_PRE\n");
 #endif
-    heat_on();
     if (internal_temp > TEMP_READY) {
       start_time = elapsed_time;  // Restart timer
       target_time = elapsed_time;
       roast_state = ROAST_ROASTING;
       heat_state = HEAT_RAMP;
+      heat_off();
       // Indicate pre-heating is done
     }
     break;
   case HEAT_RAMP:
     // Gradually increase temperature to TEMP_MAX
 #ifdef DEBUG
-    Serial.print(ms_to_minutes(millis()));
+    Serial.print(millis());
     Serial.print(": HEAT_RAMP\n");
 #endif
     if (elapsed_time > minutes_to_ms(HEAT_FULL_TIME)) {
+      heat_on();
       heat_state = HEAT_FULL;
     } else if (elapsed_time > target_time) {
       // Increase targets RAMP_STEPS times, turn on heat if needed
-      target_time += minutes_to_ms(RAMP_TIME_INTERVAL);
+      target_time = (elapsed_time + minutes_to_ms(RAMP_TIME_INTERVAL));
       target_temp += RAMP_HEAT_INTERVAL;
       if (internal_temp < target_temp) heat_on();
     } else if (internal_temp > target_temp) heat_off();
@@ -385,7 +390,7 @@ void loop() {
   case HEAT_FULL:
     // Maintain temperature at TEMP_MAX
 #ifdef DEBUG
-    Serial.print(ms_to_minutes(millis()));
+    Serial.print(millis());
     Serial.print(": HEAT_FULL\n");
 #endif
     if (internal_temp > TEMP_MAX) heat_off();
@@ -396,20 +401,20 @@ void loop() {
   switch (fan_state) {
   case FAN_IDLE:
 #ifdef DEBUG
-    Serial.print(ms_to_minutes(millis()));
+    Serial.print(millis());
     Serial.print(": FAN_IDLE\n");
 #endif
     break;
   case FAN_PARTIAL:
 #ifdef DEBUG
-    Serial.print(ms_to_minutes(millis()));
+    Serial.print(millis());
     Serial.print(": FAN_PARTIAL\n");
 #endif
     if (elapsed_time > minutes_to_ms(FAN_FULL_TIME)) fan_full();
     break;
   case FAN_FULL:
 #ifdef DEBUG
-    Serial.print(ms_to_minutes(millis()));
+    Serial.print(millis());
     Serial.print(": FAN_FULL\n");
 #endif
     break;
@@ -418,15 +423,23 @@ void loop() {
   switch (motor_state) {
   case MOTOR_OFF:
 #ifdef DEBUG
-    Serial.print(ms_to_minutes(millis()));
+    Serial.print(millis());
     Serial.print(": MOTOR_OFF\n");
 #endif
     break;
   case MOTOR_ON:
 #ifdef DEBUG
-    Serial.print(ms_to_minutes(millis()));
+    Serial.print(millis());
     Serial.print(": MOTOR_ON\n");
 #endif
     break;
   }
+
+#ifdef AUTOSTART
+  if ((elapsed_time > 5000) && (roast_state == ROAST_IDLE)) {
+    Serial.print(millis());
+    Serial.print(": Auto-starting to PREHEAT\n");
+    roast_state = ROAST_PREHEAT;
+  }
+#endif
 }
