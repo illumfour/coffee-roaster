@@ -38,6 +38,9 @@
 
  */
 
+#define DEBUG
+#define TEMPS
+
 #include "Adafruit_MAX31855.h"
 
 // enums
@@ -127,6 +130,11 @@ unsigned long minutes_to_ms(int minutes) {
   return total_ms;
 }
 
+double ms_to_minutes (unsigned long ms) {
+  double total_ms = ms / MS_IN_MINUTE;
+  return total_ms;
+}
+
 int percent_to_duty(int percent) {
   // transforms percent to approximate PWM duty cycle
   return 255*(percent/100);
@@ -140,6 +148,10 @@ void set_heat(uint8_t state) {
 
 void heat_idle() {
   if (heat_state != HEAT_IDLE) {
+#ifdef DEBUG
+    Serial.print(ms_to_minutes(millis()));
+    Serial.print(": Turning off heat\n");
+#endif
     heat_off();
     heat_state = HEAT_IDLE;
   }
@@ -151,6 +163,10 @@ void heat_off() {
 
 void heat_on() {
   if (heat_state != HEAT_IDLE) {
+#ifdef DEBUG
+    Serial.print(ms_to_minutes(millis()));
+    Serial.print(": Turning on heat\n");
+#endif
     set_heat(HIGH);
   }
 }
@@ -162,6 +178,10 @@ void set_fan(int percent) {
 
 void fan_idle() {
   if (fan_state != FAN_IDLE) {
+#ifdef DEBUG
+    Serial.print(ms_to_minutes(millis()));
+    Serial.print(": Setting fan to zero\n");
+#endif
     set_fan(0);
     fan_state = FAN_IDLE;
   }
@@ -169,6 +189,10 @@ void fan_idle() {
 
 void fan_partial() {
   if (fan_state != FAN_PARTIAL) {
+#ifdef DEBUG
+    Serial.print(ms_to_minutes(millis()));
+    Serial.print(": Setting fan to partial\n");
+#endif
     set_fan(FAN_PARTIAL_PERCENT);
     fan_state = FAN_PARTIAL;
  }
@@ -176,6 +200,10 @@ void fan_partial() {
 
 void fan_full() {
   if (fan_state != FAN_FULL) {
+#ifdef DEBUG
+    Serial.print(ms_to_minutes(millis()));
+    Serial.print(": Settin fan to full\n");
+#endif
     set_fan(FAN_FULL_PERCENT);
     fan_state = FAN_FULL;
   }
@@ -188,6 +216,10 @@ void set_motor(uint8_t state) {
 
 void motor_off() {
   if (motor_state != MOTOR_OFF) {
+#ifdef DEBUG
+    Serial.print(ms_to_minutes(millis()));
+    Serial.print(": Turning motor off\n");
+#endif
     set_motor(LOW);
     motor_state = MOTOR_OFF;
   }
@@ -195,6 +227,10 @@ void motor_off() {
 
 void motor_on() {
   if (motor_state != MOTOR_ON) {
+#ifdef DEBUG
+    Serial.print(ms_to_minutes(millis()));
+    Serial.print(": Turning motor on\n");
+#endif
     set_motor(HIGH);
     motor_state == MOTOR_ON;
   }
@@ -203,20 +239,24 @@ void motor_on() {
 double get_temp(int i) {
   double temp = temps[i].readCelsius();
   if (isnan(temp)) {
-    Serial.println("Thermocouple error ");
+#ifdef TEMPS
+    Serial.print(ms_to_minutes(millis()));
+    Serial.println(": Thermocouple error ");
     Serial.println(i);
     Serial.println("\n");
     Serial.println("Shutting down\n");
+#endif
     roast_state = ROAST_IDLE;
     return 0;
   } else {
-    Serial.println("Temp ");
+#ifdef TEMPS
+    Serial.print(ms_to_minutes(millis()));
+    Serial.println(": Temp ");
     Serial.println(i);
-    Serial.println(": ");
+    Serial.println(" = ");
     Serial.println(temp);
-    Serial.println("at ");
-    Serial.println(millis()/1000);
-    Serial.println("seconds.\n");
+    Serial.println("\n");
+#endif
     return temp;
   }
 }
@@ -224,6 +264,8 @@ double get_temp(int i) {
 // Define set-up loop
 void setup() {
   Serial.begin(9600);
+  Serial.print(ms_to_minutes(millis()));
+  Serial.print(": System on\n");
 
   pinMode(HEAT_PIN, OUTPUT);
   pinMode(MOTOR_PIN, OUTPUT);
@@ -232,6 +274,11 @@ void setup() {
 
   start_time = millis();
   next_read = start_time;
+#ifdef DEBUG
+  Serial.print(start_time);
+  Serial.print(" = start time\n");
+#endif
+
 } 
 
 // Main loop
@@ -240,21 +287,37 @@ void loop() {
   double internal_temp = 0;
 
   if (elapsed_time > next_read) {
+#ifdef DEBUG
+    Serial.print(ms_to_minutes(millis()));
+    Serial.print(": Reading sensors\n");
+#endif
     next_read += SENSOR_SAMPLING_TIME;
     internal_temp = get_temp(INTERNAL_TEMP);
   }
 
   switch (roast_state) {
   case ROAST_IDLE:
+#ifdef DEBUG
+    Serial.print(ms_to_minutes(millis()));
+    Serial.print(": ROAST_IDLE\n");
+#endif
     heat_idle();
     fan_idle();
     motor_off();
     // Indicate cooldown is done
     break;
   case ROAST_PREHEAT:
+#ifdef DEBUG
+    Serial.print(ms_to_minutes(millis()));
+    Serial.print(": ROAST_PREHEAT\n");
+#endif
     motor_on();
     heat_state = HEAT_PRE;
   case ROAST_ROASTING:
+#ifdef DEBUG
+    Serial.print(ms_to_minutes(millis()));
+    Serial.print(": ROAST_ROASTING\n");
+#endif
     motor_on();
     if (fan_state == FAN_IDLE) fan_partial();
     if (elapsed_time > minutes_to_ms(ROAST_TIME)) {
@@ -263,6 +326,10 @@ void loop() {
     break;
   case ROAST_COOLING:
     // Turn off heat, max fans until cool
+#ifdef DEBUG
+    Serial.print(ms_to_minutes(millis()));
+    Serial.print(": ROAST_COOLING\n");
+#endif
     heat_idle();
     fan_full();
     if (internal_temp < TEMP_COOL) roast_state = ROAST_IDLE;
@@ -271,9 +338,17 @@ void loop() {
 
   switch (heat_state) {
   case HEAT_IDLE:
+#ifdef DEBUG
+    Serial.print(ms_to_minutes(millis()));
+    Serial.print(": HEAT_IDLE\n");
+#endif
     break;
   case HEAT_PRE:
     // Get temperature to TEMP_READY
+#ifdef DEBUG
+    Serial.print(ms_to_minutes(millis()));
+    Serial.print(": HEAT_PRE\n");
+#endif
     heat_on();
     if (internal_temp > TEMP_READY) {
       start_time = elapsed_time;  // Restart timer
@@ -285,6 +360,10 @@ void loop() {
     break;
   case HEAT_RAMP:
     // Gradually increase temperature to TEMP_MAX
+#ifdef DEBUG
+    Serial.print(ms_to_minutes(millis()));
+    Serial.print(": HEAT_RAMP\n");
+#endif
     if (elapsed_time > minutes_to_ms(HEAT_FULL_TIME)) {
       heat_state = HEAT_FULL;
     } else if (elapsed_time > target_time) {
@@ -296,6 +375,10 @@ void loop() {
     break;
   case HEAT_FULL:
     // Maintain temperature at TEMP_MAX
+#ifdef DEBUG
+    Serial.print(ms_to_minutes(millis()));
+    Serial.print(": HEAT_FULL\n");
+#endif
     if (internal_temp > TEMP_MAX) heat_off();
     else if (internal_temp < (TEMP_MAX - TEMP_STEP)) heat_on;
     break;
@@ -303,11 +386,38 @@ void loop() {
 
   switch (fan_state) {
   case FAN_IDLE:
+#ifdef DEBUG
+    Serial.print(ms_to_minutes(millis()));
+    Serial.print(": FAN_IDLE\n");
+#endif
     break;
   case FAN_PARTIAL:
+#ifdef DEBUG
+    Serial.print(ms_to_minutes(millis()));
+    Serial.print(": FAN_PARTIAL\n");
+#endif
     if (elapsed_time > minutes_to_ms(FAN_FULL_TIME)) fan_full();
     break;
   case FAN_FULL:
+#ifdef DEBUG
+    Serial.print(ms_to_minutes(millis()));
+    Serial.print(": FAN_FULL\n");
+#endif
+    break;
+  }
+
+  switch (motor_state) {
+  case MOTOR_OFF:
+#ifdef DEBUG
+    Serial.print(ms_to_minutes(millis()));
+    Serial.print(": MOTOR_OFF\n");
+#endif
+    break;
+  case MOTOR_ON:
+#ifdef DEBUG
+    Serial.print(ms_to_minutes(millis()));
+    Serial.print(": MOTOR_ON\n");
+#endif
     break;
   }
 }
