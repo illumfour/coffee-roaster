@@ -277,13 +277,20 @@ void loop() {
     break;
   case HEAT_RAMP:
     // Gradually increase temperature to TEMP_MAX
-    if ((elapsed_time > HEAT_FULL_TIME) && (internal_temp > TEMP_MAX)) {
+    if (elapsed_time > minutes_to_ms(HEAT_FULL_TIME)) {
       heat_state = HEAT_FULL;
+      break;
     }
+    if (elapsed_time > target_time) {
+      // Increase targets RAMP_STEPS times
+      target_time += minutes_to_ms(RAMP_TIME_INTERVAL);
+      target_temp += RAMP_HEAT_INTERVAL;
+    }
+    if (internal_temp < target_temp) heat_on();
+    if (internal_temp > target_temp) heat_off();
     break;
   case HEAT_FULL:
     // Maintain temperature at TEMP_MAX
-    // CAUTION: code needs to be implemented to switch slowly
     if (internal_temp > TEMP_MAX) {
       heat_off();
     } else if (internal_temp < (TEMP_MAX - TEMP_STEP)) {
