@@ -77,18 +77,20 @@ const int THERMO_CS0 = 5;
 const int THERMO_CS1 = 6;
 
 // constants
-const int ROAST_TIME = 20;  // minutes
-const int RAMP_STEP_MICRO = 30000;  // ms, min = 12000
-const int SENSOR_SAMPLING_TIME = 1000;  // ms
-const int HEAT_FULL_TIME = 0.25 * ROAST_TIME;
-const int FAN_FULL_TIME = 0.5 * ROAST_TIME;
-const int FAN_PARTIAL_PERCENT = 50;
-const int FAN_FULL_PERCENT = 100;
-
 const int TEMP_COOL = 50;  // Especially arbitrary
 const int TEMP_READY = 100;
 const int TEMP_MAX = 250;
 const int TEMP_STEP = 5;
+
+const int ROAST_TIME = 20;  // minutes
+const int RAMP_STEPS = 40;  // divisor of ramp time
+const int HEAT_FULL_TIME = 0.25 * ROAST_TIME;
+const int RAMP_TIME_INTERVAL = HEAT_FULL_TIME / RAMP_STEPS;
+const int RAMP_HEAT_INTERVAL = (TEMP_MAX - TEMP_READY) / RAMP_STEPS;
+const int SENSOR_SAMPLING_TIME = 1000;  // ms
+const int FAN_FULL_TIME = 0.5 * ROAST_TIME;
+const int FAN_PARTIAL_PERCENT = 50;
+const int FAN_FULL_PERCENT = 100;
 
 const int MS_IN_MINUTE = 60000;
 
@@ -101,6 +103,8 @@ Adafruit_MAX31855 temps[] = {thermocouple0, thermocouple1};
 // variables
 unsigned long start_time = 0;
 unsigned long next_read = 0;
+unsigned long target_time = 0;
+double target_temp = TEMP_READY;
 
 // prototypes
 unsigned long minutes_to_ms(int minutes);
@@ -270,6 +274,7 @@ void loop() {
     heat_on();
     if (internal_temp > TEMP_READY) {
       start_time = elapsed_time;  // Restart timer
+      target_time = elapsed_time;
       roast_state = ROAST_ROASTING;
       heat_state = HEAT_RAMP;
       // Indicate pre-heating is done
