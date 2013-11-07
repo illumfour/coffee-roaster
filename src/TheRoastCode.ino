@@ -39,6 +39,7 @@
  */
 
 #define DEBUG
+#define AUTOSTART
 #define TEMPS
 
 #include "Adafruit_MAX31855.h"
@@ -294,6 +295,14 @@ void loop() {
     next_read += SENSOR_SAMPLING_TIME;
     internal_temp = get_temp(INTERNAL_TEMP);
   }
+
+#ifdef AUTOSTART
+  if ((elapsed_time > 5000) && (roast_state == ROAST_IDLE)) {
+    Serial.print(ms_to_minutes(millis()));
+    Serial.print(": Auto-starting to PREHEAT\n");
+    roast_state = ROAST_PREHEAT;
+  }
+#endif
 
   switch (roast_state) {
   case ROAST_IDLE:
