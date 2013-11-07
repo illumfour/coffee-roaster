@@ -29,6 +29,13 @@
    0%  ----------------------------------
         |       |       |       |       |
    Time 0      25      50      75      100
+
+   TODO:
+   - Get button input for: start/stop, increase time, change roast
+   - Add logging components via Serial/shield
+   - Run code by Dr. Rinker, Erik, Jordan
+   - Add LED status lights
+
  */
 
 #include "Adafruit_MAX31855.h"
