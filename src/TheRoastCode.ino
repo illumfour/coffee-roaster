@@ -256,9 +256,7 @@ void loop() {
     heat_state = HEAT_PRE;
   case ROAST_ROASTING:
     motor_on();
-    if (fan_state == FAN_IDLE) {
-      fan_partial();
-    }
+    if (fan_state == FAN_IDLE) fan_partial();
     if (elapsed_time > minutes_to_ms(ROAST_TIME)) {
       roast_state = ROAST_COOLING;
     }
@@ -267,9 +265,7 @@ void loop() {
     // Turn off heat, max fans until cool
     heat_idle();
     fan_full();
-    if (internal_temp < TEMP_COOL) {
-      roast_state = ROAST_IDLE;
-    }
+    if (internal_temp < TEMP_COOL) roast_state = ROAST_IDLE;
     break;
   }
 
@@ -315,19 +311,9 @@ void loop() {
   case FAN_IDLE:
     break;
   case FAN_PARTIAL:
-    if (elapsed_time > minutes_to_ms(FAN_FULL_TIME)) {
-      fan_full();
-    }
+    if (elapsed_time > minutes_to_ms(FAN_FULL_TIME)) fan_full();
     break;
   case FAN_FULL:
     break;
   }
-
-  switch (motor_state) {
-  case MOTOR_OFF:
-    break;
-  case MOTOR_ON:
-    break;
-  }
-
 }
