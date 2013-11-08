@@ -23,3 +23,20 @@ The gist of the matter: send command and then parameter if
 required. The display is using a PIC microcontroller (similar to the
 Atmel on the Arduino), which just sits there waiting for incoming data
 to tell it how to drive the display.
+
+296-8291-5-ND
+ 
+Note they do not have a 16-bit version. Thus:
+
+1. You can tie the CLR line to high, but that only gives you an extra
+3 channels since you need 5 to drive it (G = enable, 3 address lines,
+and the D input).
+
+2. Cascade a second chip by using a sixth line for the second G enable
+pin. I’ll show you on the board how it’s done.
+
+3. Note that these digital chips do not supply much current (4-6 mA),
+but plenty for driving a mosfet (switch) or other downstream logic
+(actual intention). There is the MC74ACT259DGOS-ND which provides +/-
+24mA, and is available in surface mount. More importantly it’s for
+older logic and thus, not as readily available anymore.
