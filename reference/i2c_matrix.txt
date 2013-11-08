@@ -1,0 +1,25 @@
+From Dr. Robert Rinker:
+
+To make your life easier, setup the unit as I2C.
+ 
+http://tronixstuff.com/2010/10/20/tutorial-arduino-and-the-i2c-bus/
+ 
+Then it’s a matter of first initializing display (turning it on,
+clearing, cursor underline on or off, setting contrast, setting
+backlight) and then moving cursor to location for placing
+character. Note the execution time for each command which may require
+a delay before sending the next command. For example, displaying
+changing data (like temperature), you can employ the 0x49 and 0x4A
+commands instead of the Set cursor command. Ex: ‘A’ = b01000001 = 0x41
+= 65 = standard ASCII code for the letter
+‘A’. http://web.cs.mun.ca/~michael/c/ascii-table.html
+ 
+Cursor locations: Top left = 0x00 = 0, top-right = 0x13 = 19 (20
+spaces horizontally) Bottom-left = 0x54 = b01010100 = 84, bottom-right
+= 0x67 = b01100111 = 103 Be careful since the positions are not linear
+from top to bottom.
+ 
+The gist of the matter: send command and then parameter if
+required. The display is using a PIC microcontroller (similar to the
+Atmel on the Arduino), which just sits there waiting for incoming data
+to tell it how to drive the display.
