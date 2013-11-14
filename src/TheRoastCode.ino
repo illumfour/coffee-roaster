@@ -326,6 +326,7 @@ void loop() {
       heat_state = HEAT_PRE;
       heat_on();
     }
+    break;
   case ROAST_ROASTING:
 #ifdef STATES
     Serial.print(millis());
@@ -437,7 +438,7 @@ void loop() {
   }
 
 #ifdef AUTOSTART
-  if ((elapsed_time > 5000) && (roast_state == ROAST_IDLE)) {
+  if ((roast_state == ROAST_IDLE) && (elapsed_time > 5000)) {
     Serial.print(millis());
     Serial.print(": Auto-starting to PREHEAT\n");
     roast_state = ROAST_PREHEAT;
