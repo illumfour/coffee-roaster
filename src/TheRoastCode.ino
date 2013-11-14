@@ -155,7 +155,7 @@ void heat_idle() {
   if (heat_state != HEAT_IDLE) {
 #ifdef DEBUG
     Serial.print(millis());
-    Serial.print(": Turning off heat\n");
+    Serial.print(": Idling heat\n");
 #endif
     heat_off();
     heat_state = HEAT_IDLE;
@@ -185,7 +185,7 @@ void fan_idle() {
   if (fan_state != FAN_IDLE) {
 #ifdef DEBUG
     Serial.print(millis());
-    Serial.print(": Setting fan to zero\n");
+    Serial.print(": Idling fan\n");
 #endif
     set_fan(0);
     fan_state = FAN_IDLE;
@@ -297,10 +297,6 @@ void loop() {
   double internal_temp = 0;
 
   if (elapsed_time > next_read) {
-#ifdef DEBUG
-    Serial.print(millis());
-    Serial.print(": Reading sensors\n");
-#endif
     next_read += SENSOR_SAMPLING_TIME;
     internal_temp = get_temp(INTERNAL_TEMP);
   }
@@ -325,6 +321,10 @@ void loop() {
     if (heat_state == HEAT_IDLE) {
       heat_state = HEAT_PRE;
       heat_on();
+#ifdef DEBUG
+      Serial.print(millis());
+      Serial.print(": Switching HEAT_IDLE to HEAT_PRE\n");
+#endif
     }
     break;
   case ROAST_ROASTING:
@@ -333,9 +333,21 @@ void loop() {
     Serial.print(": ROAST_ROASTING\n");
 #endif
     motor_on();
-    if (fan_state == FAN_IDLE) fan_partial();
+    if (fan_state == FAN_IDLE) {
+      fan_partial();
+#ifdef DEBUG
+      Serial.print(millis());
+      Serial.print(": Switching FAN_IDLE to FAN_PARTIAL\n");
+#endif
+
+    }
     if (elapsed_time > minutes_to_ms(ROAST_TIME)) {
       roast_state = ROAST_COOLING;
+#ifdef DEBUG
+      Serial.print(millis());
+      Serial.print(": Switching ROAST_ROASTING to ROAST_COOLING\n");
+#endif
+
     }
     break;
   case ROAST_COOLING:
@@ -346,7 +358,14 @@ void loop() {
 #endif
     heat_idle();
     fan_full();
-    if (internal_temp < TEMP_COOL) roast_state = ROAST_IDLE;
+    if (internal_temp < TEMP_COOL) {
+      roast_state = ROAST_IDLE;
+#ifdef DEBUG
+      Serial.print(millis());
+      Serial.print(": Switching ROAST_COOLING to ROAST_IDLE\n");
+#endif
+
+    }
     break;
   }
 
@@ -371,6 +390,11 @@ void loop() {
       heat_state = HEAT_RAMP;
       heat_off();
       // Indicate pre-heating is done
+#ifdef DEBUG
+      Serial.print(millis());
+      Serial.print(": Switching HEAT_PRE to HEAT_RAMP, ROAST_PRE to ROAST_ROASTING\n");
+#endif
+
     }
     break;
   case HEAT_RAMP:
@@ -382,11 +406,21 @@ void loop() {
     if (elapsed_time > minutes_to_ms(HEAT_FULL_TIME)) {
       heat_on();
       heat_state = HEAT_FULL;
+#ifdef DEBUG
+      Serial.print(millis());
+      Serial.print(": Switching HEAT_RAMP to HEAT_FULL\n");
+#endif
+
     } else if (elapsed_time > target_time) {
       // Increase targets RAMP_STEPS times, turn on heat if needed
       target_time = (elapsed_time + minutes_to_ms(RAMP_TIME_INTERVAL));
       target_temp += RAMP_HEAT_INTERVAL;
       if (internal_temp < target_temp) heat_on();
+#ifdef DEBUG
+      Serial.print(millis());
+      Serial.print(": Adding ramp/interval step\n");
+#endif
+
     } else if (internal_temp > target_temp) heat_off();
     break;
   case HEAT_FULL:
@@ -412,7 +446,14 @@ void loop() {
     Serial.print(millis());
     Serial.print(": FAN_PARTIAL\n");
 #endif
-    if (elapsed_time > minutes_to_ms(FAN_FULL_TIME)) fan_full();
+    if (elapsed_time > minutes_to_ms(FAN_FULL_TIME)) {
+      fan_full();
+#ifdef DEBUG
+      Serial.print(millis());
+      Serial.print(": Switching FAN_PARTIAL to FAN_FULL\n");
+#endif
+
+    }
     break;
   case FAN_FULL:
 #ifdef STATES
@@ -442,6 +483,12 @@ void loop() {
     Serial.print(millis());
     Serial.print(": Auto-starting to PREHEAT\n");
     roast_state = ROAST_PREHEAT;
+#ifdef DEBUG
+      Serial.print(millis());
+      Serial.print(": Switching ROAST_IDLE
+to ROAST_PREHEAT\n");
+#endif
+
   }
 #endif
 }
