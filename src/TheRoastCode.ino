@@ -39,6 +39,20 @@
      - 5v LED use 100 Ohm
      - 12v LED use 470 Ohm
 
+   Wiring:
+     +/- to power supply (red/black)
+     two heating relays (blue): pin 10
+     one motor relay (blue): pin 11
+     one fan relay (blue): pin 9
+     heat gun:
+       green alligator from fan relay ground (black)
+       red to PSU
+       thick white to heat gun power
+       wall black to heat relay small
+       heat relay big heat gun thick black
+
+     LEDs resistor between high of relay and high of LED, then ground
+
  */
 
 #define DEBUG
