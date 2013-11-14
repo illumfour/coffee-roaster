@@ -99,15 +99,15 @@ const int TEMP_STEP = 5;
 
 const int ROAST_TIME = 20;  // minutes
 const int RAMP_STEPS = 40;  // divisor of ramp time
-const int HEAT_FULL_TIME = (0.25 * ROAST_TIME);
-const int RAMP_TIME_INTERVAL = (HEAT_FULL_TIME / RAMP_STEPS);
-const int RAMP_HEAT_INTERVAL = ((TEMP_MAX - TEMP_READY) / RAMP_STEPS);
+const double HEAT_FULL_TIME = (0.25 * ROAST_TIME);
+const double RAMP_TIME_INTERVAL = (HEAT_FULL_TIME / RAMP_STEPS);
+const double RAMP_HEAT_INTERVAL = ((TEMP_MAX - TEMP_READY) / RAMP_STEPS);
 const int SENSOR_SAMPLING_TIME = 1000;  // ms
-const int FAN_FULL_TIME = (0.5 * ROAST_TIME);
+const double FAN_FULL_TIME = (0.5 * ROAST_TIME);
 const int FAN_PARTIAL_PERCENT = 50;
 const int FAN_FULL_PERCENT = 100;
 
-const int MS_IN_MINUTE = 60000;
+const unsigned long MS_IN_MINUTE = 60000;
 
 // thermocouples
 const int INTERNAL_TEMP = 0;  // Which one is internal
@@ -122,7 +122,7 @@ unsigned long target_time = 0;
 double target_temp = TEMP_READY;
 
 // prototypes
-unsigned long minutes_to_ms(int minutes);
+unsigned long minutes_to_ms(double minutes);
 int percent_to_duty(int percent);
 void set_heat(uint8_t state);
 void set_motor(uint8_t state);
@@ -130,8 +130,8 @@ void set_fan(int percent);
 double get_temp(int i);
 
 // helper functions
-unsigned long minutes_to_ms(int minutes) {
-  unsigned long total_ms = (minutes * MS_IN_MINUTE);
+unsigned long minutes_to_ms(double minutes) {
+  unsigned long total_ms = (minutes * double(MS_IN_MINUTE));
   return total_ms;
 }
 
@@ -344,10 +344,9 @@ void loop() {
     if (elapsed_time > minutes_to_ms(ROAST_TIME)) {
       roast_state = ROAST_COOLING;
 #ifdef DEBUG
-      Serial.print(millis());
+      Serial.print(elapsed_time);
       Serial.print(": Switching ROAST_ROASTING to ROAST_COOLING\n");
 #endif
-
     }
     break;
   case ROAST_COOLING:
@@ -385,7 +384,7 @@ void loop() {
 #endif
     if (internal_temp > TEMP_READY) {
       start_time = elapsed_time;  // Restart timer
-      target_time = elapsed_time;
+      target_time = (elapsed_time + minutes_to_ms(RAMP_TIME_INTERVAL));
       roast_state = ROAST_ROASTING;
       heat_state = HEAT_RAMP;
       heat_off();
@@ -407,7 +406,7 @@ void loop() {
       heat_on();
       heat_state = HEAT_FULL;
 #ifdef DEBUG
-      Serial.print(millis());
+      Serial.print(elapsed_time);
       Serial.print(": Switching HEAT_RAMP to HEAT_FULL\n");
 #endif
 
@@ -419,6 +418,12 @@ void loop() {
 #ifdef DEBUG
       Serial.print(millis());
       Serial.print(": Adding ramp/interval step\n");
+      Serial.print("New target_time:");
+      Serial.print(target_time);
+      Serial.println();
+      Serial.print("New target_temp:");
+      Serial.print(target_temp);
+      Serial.println();
 #endif
 
     } else if (internal_temp > target_temp) heat_off();
@@ -485,8 +490,7 @@ void loop() {
     roast_state = ROAST_PREHEAT;
 #ifdef DEBUG
       Serial.print(millis());
-      Serial.print(": Switching ROAST_IDLE
-to ROAST_PREHEAT\n");
+      Serial.print(": Switching ROAST_IDLE to ROAST_PREHEAT\n");
 #endif
 
   }
