@@ -330,6 +330,7 @@ void loop() {
     // Indicate cooldown is done
     break;
   case ROAST_PREHEAT:
+    fan_partial();
     motor_on();
     if (heat_state == HEAT_IDLE) {
       heat_state = HEAT_PRE;
