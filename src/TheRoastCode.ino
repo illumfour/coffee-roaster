@@ -187,6 +187,13 @@ void heat_on() {
     Serial.print(": Turning on heat\n");
 #endif
     set_heat(HIGH);
+    if (fan_state == FAN_IDLE) {
+      fan_partial();
+#ifdef DEBUG
+      Serial.print(millis());
+      Serial.print(": Turning fan to partial\n");
+#endif
+    }
   }
 }
 
