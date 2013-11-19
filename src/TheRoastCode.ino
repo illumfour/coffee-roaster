@@ -124,7 +124,7 @@ const int FAN_FULL_PERCENT = 100;
 const unsigned long MS_IN_MINUTE = 60000;
 
 // thermocouples
-const int INTERNAL_TEMP = 0;  // Which one is internal
+const int INTERNAL_TEMP_SENSOR = 0;  // Which one is internal
 Adafruit_MAX31855 thermocouple0 (THERMO_CLK, THERMO_CS0, THERMO_DO);
 Adafruit_MAX31855 thermocouple1 (THERMO_CLK, THERMO_CS1, THERMO_DO);
 Adafruit_MAX31855 temps[] = {thermocouple0, thermocouple1};
@@ -133,6 +133,7 @@ Adafruit_MAX31855 temps[] = {thermocouple0, thermocouple1};
 unsigned long start_time = 0;
 unsigned long next_read = 0;
 unsigned long target_time = 0;
+double internal_temp = 0;
 double target_temp = TEMP_READY;
 
 // prototypes
@@ -272,7 +273,6 @@ double get_temp(int i) {
     Serial.println("\n");
     Serial.println("Shutting down\n");
 #endif
-    roast_state = ROAST_IDLE;
     return 0;
   } else {
 #ifdef TEMPS
@@ -315,11 +315,10 @@ void setup() {
 // Main loop
 void loop() {
   unsigned long elapsed_time = millis() - start_time;
-  double internal_temp = 0;
 
   if (elapsed_time > next_read) {
     next_read += SENSOR_SAMPLING_TIME;
-    internal_temp = get_temp(INTERNAL_TEMP);
+    internal_temp = get_temp(INTERNAL_TEMP_SENSOR);
   }
 
   switch (roast_state) {
