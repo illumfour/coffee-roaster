@@ -197,7 +197,7 @@ void heat_off() {
 }
 
 void heat_on() {
-  if (heat_state != HEAT_IDLE && ELEMENT_STATE != ELEMENT_ON) {
+  if ((heat_state != HEAT_IDLE) && (element_state != ELEMENT_ON)) {
 #ifdef DEBUG
     Serial.print(millis());
     Serial.print(": Turning on heat\n");
@@ -333,6 +333,7 @@ void loop() {
   unsigned long elapsed_time = millis() - start_time;
 
   if (elapsed_time > next_read) {
+    Serial.println(ms_to_minutes(elapsed_time));
     next_read += SENSOR_SAMPLING_TIME;
     internal_temp = get_temp(INTERNAL_TEMP_SENSOR);
   }
