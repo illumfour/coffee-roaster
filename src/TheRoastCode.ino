@@ -99,9 +99,9 @@ const int FAN_PIN = 9;  // PWM one of 3, 5, 6, 9, 10, or 11
 const int HEAT_PIN = 10;  // Whatever we choose
 const int MOTOR_PIN = 11;  // Ditto
 
-const int THERMO_CLK = 3;
-const int THERMO_DO = 4;  // Digital
-const int THERMO_CS0 = 5;
+const int THERMO_CLK = 5;
+const int THERMO_DO = 3;  // Digital
+const int THERMO_CS0 = 4;
 const int THERMO_CS1 = 6;
 
 // constants
@@ -268,10 +268,9 @@ double get_temp(int i) {
   if (isnan(temp)) {
 #ifdef TEMPS
     Serial.print(millis());
-    Serial.println(": Thermocouple error ");
-    Serial.println(i);
-    Serial.println("\n");
-    Serial.println("Shutting down\n");
+    Serial.print(": Thermocouple error ");
+    Serial.print(i);
+    Serial.print("\n");
 #endif
     return 0;
   } else {
