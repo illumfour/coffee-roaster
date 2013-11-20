@@ -96,8 +96,9 @@ motorState_t motor_state = MOTOR_OFF;
 
 // pins
 const int FAN_PIN = 9;  // PWM one of 3, 5, 6, 9, 10, or 11
-const int HEAT_PIN = 10;  // Whatever we choose
-const int MOTOR_PIN = 11;  // Ditto
+const int MOTOR_PIN = 10;  // Ditto
+const int HEAT_PIN0 = 11;  // Whatever we choose
+const int HEAT_PIN1 = 12;  // Whatever we choose
 
 const int THERMO_CLK = 5;
 const int THERMO_DO = 3;  // Digital
@@ -163,7 +164,8 @@ int percent_to_duty(int percent) {
 // hardware control
 void set_heat(uint8_t state) {
   // accepts HIGH/LOW for ON/OFF
-  digitalWrite(HEAT_PIN, state);
+  digitalWrite(HEAT_PIN0, state);
+  digitalWrite(HEAT_PIN1, state);
 }
 
 void heat_idle() {
@@ -292,7 +294,8 @@ void setup() {
   Serial.print(millis());
   Serial.print(": System on\n");
 
-  pinMode(HEAT_PIN, OUTPUT);
+  pinMode(HEAT_PIN0, OUTPUT);
+  pinMode(HEAT_PIN1, OUTPUT);
   pinMode(MOTOR_PIN, OUTPUT);
 
   heat_off();
