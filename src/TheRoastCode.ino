@@ -344,12 +344,6 @@ void loop() {
     break;
   case ROAST_ROASTING:
     motor_on();
-#ifdef DEBUG
-      Serial.print(millis());
-      Serial.print(": Switching FAN_IDLE to FAN_PARTIAL\n");
-#endif
-
-    }
     if (elapsed_time > minutes_to_ms(ROAST_TIME)) {
       roast_state = ROAST_COOLING;
 #ifdef DEBUG
@@ -368,7 +362,6 @@ void loop() {
       Serial.print(millis());
       Serial.print(": Switching ROAST_COOLING to ROAST_IDLE\n");
 #endif
-
     }
     break;
   }
@@ -421,26 +414,14 @@ void loop() {
 
     } else if (internal_temp > target_temp) {
       heat_off();
-#ifdef DEBUG
-      Serial.print(millis());
-      Serial.print(": Target temp reached, turning off heat\n");
-#endif
     }
     break;
   case HEAT_FULL:
     // Maintain temperature at TEMP_MAX
     if (internal_temp > TEMP_MAX) {
       heat_off();
-#ifdef DEBUG
-      Serial.print(millis());
-      Serial.print(": Max temp reached, turning heat off\n");
-#endif
     } else if (internal_temp < (TEMP_MAX - TEMP_STEP)) {
-      heat_on;
-#ifdef DEBUG
-      Serial.print(millis());
-      Serial.print(": Step below max temp, turning heat on\n");
-#endif
+      heat_on();
     }
     break;
   }
