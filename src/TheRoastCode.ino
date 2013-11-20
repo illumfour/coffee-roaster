@@ -344,8 +344,6 @@ void loop() {
     break;
   case ROAST_ROASTING:
     motor_on();
-    if (fan_state == FAN_IDLE) {
-      fan_partial();
 #ifdef DEBUG
       Serial.print(millis());
       Serial.print(": Switching FAN_IDLE to FAN_PARTIAL\n");
@@ -390,9 +388,9 @@ void loop() {
       // Indicate pre-heating is done
 #ifdef DEBUG
       Serial.print(millis());
-      Serial.print(": Switching HEAT_PRE to HEAT_RAMP, ROAST_PRE to ROAST_ROASTING\n");
+      Serial.print(": Switching HEAT_PRE to HEAT_RAMP");
+      Serial.print(", ROAST_PRE to ROAST_ROASTING\n");
 #endif
-
     }
     break;
   case HEAT_RAMP:
@@ -413,20 +411,37 @@ void loop() {
 #ifdef DEBUG
       Serial.print(millis());
       Serial.print(": Adding ramp/interval step\n");
-      Serial.print("New target_time:");
+      Serial.print("New target_time: ");
       Serial.print(target_time);
       Serial.println();
-      Serial.print("New target_temp:");
+      Serial.print("New target_temp: ");
       Serial.print(target_temp);
       Serial.println();
 #endif
 
-    } else if (internal_temp > target_temp) heat_off();
+    } else if (internal_temp > target_temp) {
+      heat_off();
+#ifdef DEBUG
+      Serial.print(millis());
+      Serial.print(": Target temp reached, turning off heat\n");
+#endif
+    }
     break;
   case HEAT_FULL:
     // Maintain temperature at TEMP_MAX
-    if (internal_temp > TEMP_MAX) heat_off();
-    else if (internal_temp < (TEMP_MAX - TEMP_STEP)) heat_on;
+    if (internal_temp > TEMP_MAX) {
+      heat_off();
+#ifdef DEBUG
+      Serial.print(millis());
+      Serial.print(": Max temp reached, turning heat off\n");
+#endif
+    } else if (internal_temp < (TEMP_MAX - TEMP_STEP)) {
+      heat_on;
+#ifdef DEBUG
+      Serial.print(millis());
+      Serial.print(": Step below max temp, turning heat on\n");
+#endif
+    }
     break;
   }
 
