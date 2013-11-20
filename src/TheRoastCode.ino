@@ -111,7 +111,7 @@ const int RAMP_STEPS = 40;  // divisor of ramp time and temp
 const int TEMP_COOL = 50;  // Especially arbitrary
 const int TEMP_READY = 100;
 const int TEMP_MAX = 250;
-const double TEMP_STEP = (TEMP_MAX - TEMP_READY)/RAMP_STEPS;
+const int TEMP_STEP = 5;
 
 const int ROAST_TIME = 20;  // minutes
 const double HEAT_FULL_TIME = (0.25 * ROAST_TIME);
