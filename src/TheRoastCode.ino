@@ -70,6 +70,11 @@ typedef enum ROAST_STATE {
   ROAST_COOLING,
 } roastState_t;
 
+typedef enum ELEMENT_STATE {
+  ELEMENT_ON,
+  ELEMENT_OFF,
+} elementState_t;
+
 typedef enum HEAT_STATE {
   HEAT_IDLE,
   HEAT_PRE,
@@ -91,6 +96,7 @@ typedef enum MOTOR_STATE {
 // states
 roastState_t roast_state = ROAST_IDLE;
 heatState_t heat_state = HEAT_IDLE;
+elementState_t element_state = ELEMENT_OFF;
 fanState_t fan_state = FAN_IDLE;
 motorState_t motor_state = MOTOR_OFF;
 
@@ -180,16 +186,24 @@ void heat_idle() {
 }
 
 void heat_off() {
-  set_heat(LOW);
+  if (element_state != ELEMENT_OFF) {
+    set_heat(LOW);
+    element_state = ELEMENT_OFF;
+#ifdef DEBUG
+    Serial.print(millis());
+    Serial.print(": Turning off heat\n");
+#endif
+  }
 }
 
 void heat_on() {
-  if (heat_state != HEAT_IDLE) {
+  if (heat_state != HEAT_IDLE && ELEMENT_STATE != ELEMENT_ON) {
 #ifdef DEBUG
     Serial.print(millis());
     Serial.print(": Turning on heat\n");
 #endif
     set_heat(HIGH);
+    element_state = ELEMENT_ON;
     if (fan_state == FAN_IDLE) {
       fan_partial();
 #ifdef DEBUG
