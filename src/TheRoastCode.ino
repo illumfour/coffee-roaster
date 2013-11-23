@@ -99,6 +99,7 @@ fanState_t fan_state = FAN_IDLE;
 motorState_t motor_state = MOTOR_IDLE;
 
 /* pins */
+const int BUTTON_PIN = 8;  /* Digital */
 const int FAN_PIN = 9;  /* PWM one of Digital 3, 5, 6, 9, 10, or 11 */
 const int MOTOR_PIN = 10;  /* PWM */
 const int HEAT_PIN0 = 11;  /* Digital */
@@ -367,6 +368,7 @@ void setup() {
 #endif
 
 /* set appropriate pin modes */
+  pinMode(BUTTON_PIN, INPUT);
   pinMode(HEAT_PIN0, OUTPUT);
   pinMode(HEAT_PIN1, OUTPUT);
   pinMode(MOTOR_PIN, OUTPUT);
@@ -386,6 +388,9 @@ void setup() {
 /* main Arduino loop */
 void loop() {
   elapsed_time = millis() - start_time;
+
+  /* advance roast state on button push */
+  if (digitalRead(BUTTON_PIN) == HIGH) advance_roast();
 
   /* read sensor */
   if (elapsed_time > next_read) {
