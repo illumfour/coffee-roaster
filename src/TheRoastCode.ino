@@ -303,7 +303,20 @@ double get_temp(int i) {
   }
 }
 
-/* roast state control */
+/* roast control */
+void roast_idle() {
+  if (roast_state != ROAST_IDLE) {
+    roast_state = ROAST_IDLE;
+    heat_idle();
+    fan_idle();
+    motor_idle();
+#ifdef DEBUG
+    Serial.print(millis());
+    Serial.print(": Idling roaster\n");
+#endif
+  }
+}
+
 void advance_roast() {
   /* handle on-advance code */
   switch (roast_state) {
@@ -360,9 +373,6 @@ void setup() {
 
 /* begin idling */
   roast_idle();
-  heat_idle();
-  fan_idle();
-  motor_idle();
   delay(500);  /* let things settle */
 
   start_time = millis();
