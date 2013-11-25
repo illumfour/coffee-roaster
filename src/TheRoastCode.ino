@@ -120,7 +120,7 @@ const int TEMP_STEP = 5;
 
 const int ROAST_TIME = 20;  /* minutes */
 const double HEAT_FULL_TIME = 0.25 * ROAST_TIME;
-const double RAMP_TIME_STEP = HEAT_FULL_TIME / RAMP_STEPS;
+const double RAMP_TIME_STEP = (double)HEAT_FULL_TIME / RAMP_STEPS;
 const double RAMP_HEAT_STEP = (double)(TEMP_MAX - TEMP_READY) / RAMP_STEPS;
 const int SENSOR_SAMPLING_TIME = 1000;  /* ms */
 const double FAN_FULL_TIME = 0.5 * ROAST_TIME;
@@ -163,7 +163,7 @@ double ms_to_min(unsigned long ms) {
 
 int percent_to_duty(int percent) {
   /* transforms percent to approximate PWM duty cycle */
-  return 255*(percent/100);
+  return 255*(percent/100.);
 }
 
 /* set targets */
