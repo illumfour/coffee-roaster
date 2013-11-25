@@ -8,14 +8,6 @@
   Heavily inspired and aided by Lim Phang Moh's "Reflow Oven
   Controller" - https://github.com/rocketscream/Reflow-Oven-Controller
 
-  Required pins:
-
-  1 pin: boolean, rules heat gun + both elements
-  1 pin: boolean, motor, but on throughout
-  1 pin: PWM, fan
-
-  Maximum relay switches = 100 times per roast
-
   Temperature
         |
   100% -|       ********%%%%%%%%%%%%%%%%%
@@ -31,7 +23,7 @@
    Time 0      25      50      75      100
 
    TODO:
-   - Get button input for: start/stop, increase time, change roast
+   - Get button input for: increase time, change roast
    - Add logging components via Serial/shield
    - Run code by Dr. Rinker, Erik, Jordan
    - Add display: NHD-0420D3Z-FL-GBW
@@ -41,9 +33,9 @@
 
    Wiring:
      +/- to power supply (red/black)
-     two heating relays (blue): pin 10
-     one motor relay (blue): pin 11
-     one fan relay (blue): pin 9
+     two heating relays (blue)
+     one motor relay (blue)
+     one fan relay (blue)
      heat gun:
        green alligator from fan relay ground (black)
        red to PSU
