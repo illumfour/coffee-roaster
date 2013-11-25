@@ -58,11 +58,11 @@
 #define SERIAL
 
 #ifdef SERIAL
+
 #define DEBUG
 #define TEMPS
-#endif
 
-#define AUTOSTART
+#endif
 
 #include "Adafruit_MAX31855.h"
 
