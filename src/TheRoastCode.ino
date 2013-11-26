@@ -147,7 +147,7 @@ double get_avg_temp();
 
 /* math functions */
 unsigned long min_to_ms(double minutes) {
-  return (long)minutes * 60000;
+  return minutes * (unsigned long)60000;
 }
 
 double ms_to_min(unsigned long ms) {
@@ -281,7 +281,7 @@ double get_temp(int i) {
     Serial.print(millis());
     Serial.print(": Thermocouple error ");
     Serial.print(i);
-    Serial.print("\n");
+    Serial.println();
 #endif
     return 0;
   } else {
@@ -291,7 +291,7 @@ double get_temp(int i) {
     Serial.print(i);
     Serial.print(" = ");
     Serial.print(temp);
-    Serial.print("\n");
+    Serial.println();
 #endif
     return temp;
   }
@@ -302,6 +302,12 @@ double get_avg_temp() {
   for (int i = 0; i < NUM_THERMO; i++) {
     average += get_temp(i);
   }
+#ifdef TEMPS
+  Serial.print(millis());
+  Serial.print(": Average = ");
+  Serial.print(average/NUM_THERMO);
+  Serial.println();
+#endif
   return average/NUM_THERMO;
 }
 
