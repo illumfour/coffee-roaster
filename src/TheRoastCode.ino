@@ -132,6 +132,7 @@ unsigned long next_read = 0;
 unsigned long target_time = 0;
 unsigned long elapsed_time = 0;
 unsigned long roast_start = 0;
+unsigned long last_change = 0;
 double internal_temp = 0;
 double target_temp = TEMP_READY;
 
@@ -397,7 +398,12 @@ void loop() {
   elapsed_time = millis() - start_time;
 
   /* advance roast state on button push */
-  if (digitalRead(BUTTON_PIN) == HIGH) advance_roast();
+  if (digitalRead(BUTTON_PIN) == HIGH) {
+    if (elapsed_time > last_change) {
+      advance_roast();
+      last_change = elapsed_time + 500;
+    }
+  }
 
   /* read sensor */
   if (elapsed_time > next_read) {
