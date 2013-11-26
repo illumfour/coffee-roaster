@@ -121,7 +121,7 @@ const int FAN_PARTIAL_PERCENT = 50;
 const int FAN_FULL_PERCENT = 100;
 
 /* thermocouples */
-const int INTERNAL_TEMP_SENSOR = 0;  /* which one is internal */
+const int NUM_THERMO = 2;  /* how many thermocouples */
 Adafruit_MAX31855 thermocouple0(THERMO_CLK, THERMO_CS0, THERMO_DO);
 Adafruit_MAX31855 thermocouple1(THERMO_CLK, THERMO_CS1, THERMO_DO);
 Adafruit_MAX31855 temps[] = {thermocouple0, thermocouple1};
@@ -143,6 +143,7 @@ void set_heat(uint8_t state);
 void set_motor(uint8_t state);
 void set_fan(int percent);
 double get_temp(int i);
+double get_avg_temp();
 
 /* math functions */
 unsigned long min_to_ms(double minutes) {
@@ -296,6 +297,14 @@ double get_temp(int i) {
   }
 }
 
+double get_avg_temp() {
+  double average = 0;
+  for (int i = 0; i < NUM_THERMO; i++) {
+    average += get_temp(i);
+  }
+  return average/NUM_THERMO;
+}
+
 /* roast control */
 void roast_idle() {
   if (roast_state != ROAST_IDLE) {
@@ -387,7 +396,7 @@ void loop() {
   /* read sensor */
   if (elapsed_time > next_read) {
     next_read += SENSOR_SAMPLING_TIME;
-    internal_temp = get_temp(INTERNAL_TEMP_SENSOR);
+    internal_temp = get_avg_temp();
 #ifdef SERIAL
     Serial.println(ms_to_min(elapsed_time));
 #endif
