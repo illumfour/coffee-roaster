@@ -121,7 +121,7 @@ const int FAN_PARTIAL_PERCENT = 50;
 const int FAN_FULL_PERCENT = 100;
 
 /* thermocouples */
-const int NUM_THERMO = 2;  /* how many thermocouples */
+const int NUM_THERMO = 1;  /* how many thermocouples */
 Adafruit_MAX31855 thermocouple0(THERMO_CLK, THERMO_CS0, THERMO_DO);
 Adafruit_MAX31855 thermocouple1(THERMO_CLK, THERMO_CS1, THERMO_DO);
 Adafruit_MAX31855 temps[] = {thermocouple0, thermocouple1};
@@ -402,6 +402,10 @@ void loop() {
     if (elapsed_time > last_change) {
       advance_roast();
       last_change = elapsed_time + 500;
+#ifdef DEBUG
+      Serial.print(millis());
+      Serial.print(": Button pushed\n");
+#endif
     }
   }
 
@@ -432,7 +436,6 @@ void loop() {
     if (internal_temp > TEMP_READY) {
       /* turn off heat and motor if hot enough */
       heat_idle();
-      motor_idle();  /* for ease of bean loading */
     }
     break;
   case ROAST_RAMP:
