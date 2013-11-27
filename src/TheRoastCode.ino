@@ -47,12 +47,21 @@
 
  */
 
+#define LOGGER
 #define SERIAL
 
 #ifdef SERIAL
 
 #define DEBUG
 #define TEMPS
+
+#endif
+
+#ifdef LOGGER
+
+#include "SD.h"
+#include <Wire.h>
+#include "RTClib.h"
 
 #endif
 
@@ -91,6 +100,7 @@ fanState_t fan_state = FAN_IDLE;
 motorState_t motor_state = MOTOR_IDLE;
 
 /* pins */
+const int DATA_LOG_PIN = 7;  /* Digital */
 const int BUTTON_PIN = 8;  /* Digital */
 const int FAN_PIN = 9;  /* PWM one of Digital 3, 5, 6, 9, 10, or 11 */
 const int MOTOR_PIN = 10;  /* PWM */
@@ -119,12 +129,17 @@ const double FAN_FULL_TIME = 0.5 * ROAST_TIME;
 
 const int FAN_PARTIAL_PERCENT = 50;
 const int FAN_FULL_PERCENT = 100;
+const char COMMA = ',';
 
 /* thermocouples */
 const int NUM_THERMO = 1;  /* how many thermocouples */
 Adafruit_MAX31855 thermocouple0(THERMO_CLK, THERMO_CS0, THERMO_DO);
 Adafruit_MAX31855 thermocouple1(THERMO_CLK, THERMO_CS1, THERMO_DO);
 Adafruit_MAX31855 temps[] = {thermocouple0, thermocouple1};
+
+/* data logger */
+File logfile;
+RTC_DS1307 RTC;
 
 /* variables */
 unsigned long start_time = 0;
@@ -376,10 +391,49 @@ void setup() {
 #endif
 
 /* set appropriate pin modes */
+  pinMode(DATA_LOG_PIN, OUTPUT);
   pinMode(BUTTON_PIN, INPUT);
   pinMode(HEAT_PIN0, OUTPUT);
   pinMode(HEAT_PIN1, OUTPUT);
   pinMode(MOTOR_PIN, OUTPUT);
+
+  /* initialize SD card for data logger */
+#ifdef LOGGER
+  if (!SD.begin(DATA_LOG_PIN)) {
+#ifdef SERIAL
+    Serial.println("Card failed, or not present");
+#endif
+    return;
+  }
+#ifdef SERIAL
+  Serial.println("Card initialized");
+#endif
+  /* create a new file */
+  char filename[] = "LOGGER00.CSV";
+  for (uint8_t i = 0; i < 100; i++) {
+    filename[6] = i/10 + '0';
+    filename[7] = i%10 + '0';
+    if (!SD.exists(filename)) {
+      /* only open a new file if it doesn't exist */
+      logfile = SD.open(filename, FILE_WRITE); 
+      break;  // leave the loop!
+    }
+  }
+  if (!logfile) {
+#ifdef SERIAL
+    Serial.println("Failed write to logfile");
+#endif
+    return;
+  }
+#ifdef SERIAL
+  Serial.print("Logging to: ");
+  Serial.println(filename);
+#endif
+
+  /* setup RTC */
+  Wire.begin();
+  if (!RTC.begin()) logfile.println("RTC failed");
+#endif
 
 /* begin idling */
   roast_idle();
@@ -395,6 +449,8 @@ void setup() {
 
 /* main Arduino loop */
 void loop() {
+  DateTime now;
+  int percent;
   elapsed_time = millis() - start_time;
 
   /* advance roast state on button push */
@@ -412,7 +468,44 @@ void loop() {
   /* read sensor */
   if (elapsed_time > next_read) {
     next_read += SENSOR_SAMPLING_TIME;
+
     internal_temp = get_avg_temp();
+#ifdef LOGGER
+    now = RTC.now();
+    logfile.print(now.unixtime());
+    logfile.print(COMMA);
+    logfile.print(now.year(), DEC);
+    logfile.print("/");
+    logfile.print(now.month(), DEC);
+    logfile.print("/");
+    logfile.print(now.day(), DEC);
+    logfile.print(" ");
+    logfile.print(now.hour(), DEC);
+    logfile.print(":");
+    logfile.print(now.minute(), DEC);
+    logfile.print(":");
+    logfile.print(now.second(), DEC);
+    logfile.print(COMMA);
+    logfile.print(ms_to_min(elapsed_time));
+    logfile.print(COMMA);
+    logfile.print(internal_temp);
+    logfile.print(COMMA);
+    logfile.print(get_temp(0));
+    logfile.print(COMMA);
+    logfile.print(get_temp(1));
+    logfile.print(COMMA);
+    switch (fan_state) {
+    case FAN_IDLE:
+      percent = 0; break;
+    case FAN_PARTIAL:
+      percent = FAN_PARTIAL_PERCENT; break;
+    case FAN_FULL: 
+      percent = FAN_FULL_PERCENT; break;
+    }
+    logfile.print(percent);
+    logfile.print(COMMA);
+    logfile.println(roast_state);
+#endif
 #ifdef SERIAL
     Serial.println(ms_to_min(elapsed_time));
 #endif
