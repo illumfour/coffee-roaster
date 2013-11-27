@@ -199,7 +199,7 @@ void heat_idle() {
     heat_state = HEAT_IDLE;
 #ifdef DEBUG
     Serial.print(millis());
-    Serial.print(": Idling heat\n");
+    Serial.println(": Idling heat");
 #endif
   }
 }
@@ -210,14 +210,14 @@ void heat_full() {
     heat_state = HEAT_FULL;
 #ifdef DEBUG
     Serial.print(millis());
-    Serial.print(": Turning on heat\n");
+    Serial.println(": Turning on heat");
 #endif
     if (fan_state == FAN_IDLE) {
       /* ensures fan is at least at partial */
       fan_partial();
 #ifdef DEBUG
       Serial.print(millis());
-      Serial.print(": Turning fan to partial\n");
+      Serial.println(": Turning fan to partial");
 #endif
     }
   }
@@ -234,7 +234,7 @@ void fan_idle() {
     fan_state = FAN_IDLE;
 #ifdef DEBUG
     Serial.print(millis());
-    Serial.print(": Idling fan\n");
+    Serial.println(": Idling fan");
 #endif
   }
 }
@@ -245,7 +245,7 @@ void fan_partial() {
     fan_state = FAN_PARTIAL;
 #ifdef DEBUG
     Serial.print(millis());
-    Serial.print(": Setting fan to partial\n");
+    Serial.println(": Setting fan to partial");
 #endif
  }
 }
@@ -256,7 +256,7 @@ void fan_full() {
     fan_state = FAN_FULL;
 #ifdef DEBUG
     Serial.print(millis());
-    Serial.print(": Setting fan to full\n");
+    Serial.println(": Setting fan to full");
 #endif
   }
 }
@@ -273,7 +273,7 @@ void motor_idle() {
     motor_state = MOTOR_IDLE;
 #ifdef DEBUG
     Serial.print(millis());
-    Serial.print(": Idling motor\n");
+    Serial.println(": Idling motor");
 #endif
   }
 }
@@ -284,7 +284,7 @@ void motor_full() {
     motor_state = MOTOR_FULL;
 #ifdef DEBUG
     Serial.print(millis());
-    Serial.print(": Turning motor on\n");
+    Serial.println(": Turning motor on");
 #endif
   }
 }
@@ -336,7 +336,7 @@ void roast_idle() {
     motor_idle();
 #ifdef DEBUG
     Serial.print(millis());
-    Serial.print(": Idling roaster\n");
+    Serial.println(": Idling roaster");
 #endif
   }
 }
@@ -347,7 +347,7 @@ void advance_roast() {
   case ROAST_IDLE:
 #ifdef SERIAL
     Serial.print(ms_to_min(elapsed_time));
-    Serial.print(": Starting roast, entering pre-heat state\n");
+    Serial.println(": Starting roast, entering pre-heat state");
 #endif
     break;
   case ROAST_PREHEAT:
@@ -355,26 +355,26 @@ void advance_roast() {
     set_target_time();  /* set initial target */
 #ifdef SERIAL
     Serial.print(ms_to_min(elapsed_time));
-    Serial.print(": Pre-heat done, entering ramp state\n");
+    Serial.println(": Pre-heat done, entering ramp state");
 #endif
     break;
   case ROAST_RAMP:
 #ifdef SERIAL
     Serial.print(ms_to_min(elapsed_time));
-    Serial.print(": Ramping done, entering full-heat state\n");
+    Serial.println(": Ramping done, entering full-heat state");
 #endif
     break;
   case ROAST_FULL:
 #ifdef SERAL
     Serial.print(ms_to_min(elapsed_time));
-    Serial.print(": Roast done, entering cooldown state\n");
+    Serial.println(": Roast done, entering cooldown state");
 #endif
     break;
   case ROAST_COOLING:
     start_time = elapsed_time;  /* reset start_time for next roast */
 #ifdef SERIAL
     Serial.print(ms_to_min(elapsed_time));
-    Serial.print(": Cooldown done, entering idle state\n");
+    Serial.println(": Cooldown done, entering idle state");
 #endif
     break;
   }
@@ -387,10 +387,10 @@ void setup() {
 #ifdef SERIAL
   Serial.begin(9600);
   Serial.print(millis());
-  Serial.print(": System on\n");
+  Serial.println(": System on");
 #endif
 
-/* set appropriate pin modes */
+  /* set appropriate pin modes */
   pinMode(DATA_LOG_PIN, OUTPUT);
   pinMode(BUTTON_PIN, INPUT);
   pinMode(HEAT_PIN0, OUTPUT);
@@ -443,7 +443,7 @@ void setup() {
   next_read = start_time;
 #ifdef DEBUG
   Serial.print(start_time);
-  Serial.print(" = start time\n");
+  Serial.println(" = start time");
 #endif
 } 
 
@@ -460,7 +460,7 @@ void loop() {
       last_change = elapsed_time + 500;
 #ifdef DEBUG
       Serial.print(millis());
-      Serial.print(": Button pushed\n");
+      Serial.println(": Button pushed");
 #endif
     }
   }
@@ -543,7 +543,7 @@ void loop() {
       if (internal_temp < target_temp) heat_full();
 #ifdef DEBUG
       Serial.print(millis());
-      Serial.print(": Adding ramp/interval step\n");
+      Serial.println(": Adding ramp/interval step");
       Serial.print("New target_time: ");
       Serial.print(target_time);
       Serial.println();
