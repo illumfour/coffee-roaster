@@ -65,6 +65,7 @@
 
 #endif
 
+#include <math.h>
 #include "Adafruit_MAX31855.h"
 
 /* enums for states */
@@ -113,6 +114,8 @@ const int THERMO_CLK = 5;  /* Digital */
 const int THERMO_CS1 = 6;  /* Digital */
 
 /* constants */
+const int SAMPLE_SIZE = 4;
+const int ERROR_MARGIN = 4;
 const int RAMP_STEPS = 40;  /* divisor of ramp time and temp */
 
 const int TEMP_COOL = 75;
@@ -148,8 +151,12 @@ unsigned long target_time = 0;
 unsigned long elapsed_time = 0;
 unsigned long roast_start = 0;
 unsigned long last_change = 0;
-double internal_temp = 0;
+double internal_temp = 0.0;
 double target_temp = TEMP_READY;
+
+/* sample collection */
+double samples[SAMPLE_SIZE];
+int sample_index = 0;
 
 /* prototypes */
 unsigned long min_to_ms(double minutes);
@@ -160,6 +167,9 @@ void set_motor(uint8_t state);
 void set_fan(int percent);
 double get_temp(int i);
 double get_avg_temp();
+double calculate_mean(double data[]);
+double calculate_standard_deviation(double data[], double mean);
+void add_sample(double sample);
 
 /* math functions */
 unsigned long min_to_ms(double minutes) {
@@ -172,7 +182,36 @@ double ms_to_min(unsigned long ms) {
 
 int percent_to_duty(int percent) {
   /* transforms percent to approximate PWM duty cycle */
-  return 255*(percent/100.);
+  return 255 * (percent / 100.);
+}
+
+double calculate_mean(double data[]) {
+  /* calculates the mean of an array of data */
+  int size = sizeof(data) / sizeof(double);
+  double mean = 0.0;
+  for (int i = 0; i < size; i++) mean += data[i];
+  return mean / size;
+}
+
+double calculate_standard_deviation(double data[], double mean) {
+  /* calculates the standard deviation of an array of data */
+  int size = sizeof(data) / sizeof(double);
+  double stddev_sum = 0.0;
+  for (int i = 0; i < size; i++) stddev_sum += square(data[i] - mean);
+  return sqrt(stddev_sum / size);
+}
+
+/* sample collection */
+void add_sample(double sample) {
+  double mean = calculate_mean(samples);
+  double stddev = calculate_standard_deviation(samples, mean);
+  /* replace sample with prior one if outside our margin of error */
+  if ((sample < 10) || (sample > 500) ||
+      (sample > (mean + (ERROR_MARGIN * stddev))) ||
+      (sample < (mean - (ERROR_MARGIN * stddev))))
+    sample = samples[(sample_index - 1) % SAMPLE_SIZE];
+  samples[sample_index] = sample;
+  sample_index = (sample_index + 1) % SAMPLE_SIZE;
 }
 
 /* set targets */
@@ -292,32 +331,30 @@ void motor_full() {
 /* thermocouple access */
 double get_temp(int i) {
   double temp = temps[i].readCelsius();
-  if (isnan(temp)) {
-#ifdef TEMPS
+  while (isnan(temp)) {
+    /* discard all errors, if problematic, add limit */
+    delay(10);
+#ifdef DEBUG
     Serial.print(millis());
-    Serial.print(": Thermocouple error ");
+    Serial.print(": Thermocouple error on ");
     Serial.print(i);
     Serial.println();
 #endif
-    return 0;
-  } else {
-#ifdef TEMPS
-    Serial.print(millis());
-    Serial.print(": Temp ");
-    Serial.print(i);
-    Serial.print(" = ");
-    Serial.print(temp);
-    Serial.println();
-#endif
-    return temp;
   }
+#ifdef TEMPS
+  Serial.print(millis());
+  Serial.print(": Temp ");
+  Serial.print(i);
+  Serial.print(" = ");
+  Serial.print(temp);
+  Serial.println();
+#endif
+  return temp;
 }
 
 double get_avg_temp() {
-  double average = 0;
-  for (int i = 0; i < NUM_THERMO; i++) {
-    average += get_temp(i);
-  }
+  double average = 0.0;
+  for (int i = 0; i < NUM_THERMO; i++) average += get_temp(i);
 #ifdef TEMPS
   Serial.print(millis());
   Serial.print(": Average = ");
@@ -435,9 +472,12 @@ void setup() {
   if (!RTC.begin()) logfile.println("RTC failed");
 #endif
 
-/* begin idling */
+  /* begin idling */
   roast_idle();
   delay(500);  /* let things settle */
+
+  /* fill samples with data */
+  for (int i = 0; i < SAMPLE_SIZE; i++) samples[i] = get_avg_temp();
 
   start_time = millis();
   next_read = start_time;
@@ -450,7 +490,7 @@ void setup() {
 /* main Arduino loop */
 void loop() {
   DateTime now;
-  int percent;
+  int percent = 0;
   elapsed_time = millis() - start_time;
 
   /* advance roast state on button push */
@@ -468,8 +508,8 @@ void loop() {
   /* read sensor */
   if (elapsed_time > next_read) {
     next_read += SENSOR_SAMPLING_TIME;
-
-    internal_temp = get_avg_temp();
+    add_sample(get_avg_temp());
+    internal_temp = calculate_mean(samples);
 #ifdef LOGGER
     now = RTC.now();
     logfile.print(now.unixtime());
