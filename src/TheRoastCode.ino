@@ -102,7 +102,8 @@ motorState_t motor_state = MOTOR_IDLE;
 
 /* pins */
 const int DATA_LOG_PIN = 7;  /* Digital */
-const int BUTTON_PIN = 8;  /* Digital */
+const int STATE_BUTTON = 8;  /* Digital */
+const int TIME_BUTTON = 2;  /* Digital */
 const int FAN_PIN = 9;  /* PWM one of Digital 3, 5, 6, 9, 10, or 11 */
 const int MOTOR_PIN = 10;  /* PWM */
 const int HEAT_PIN0 = 11;  /* Digital */
@@ -145,6 +146,7 @@ File logfile;
 RTC_DS1307 RTC;
 
 /* variables */
+unsigned long roast_time = min_to_ms(ROAST_TIME);
 unsigned long start_time = 0;
 unsigned long next_read = 0;
 unsigned long target_time = 0;
@@ -429,7 +431,8 @@ void setup() {
 
   /* set appropriate pin modes */
   pinMode(DATA_LOG_PIN, OUTPUT);
-  pinMode(BUTTON_PIN, INPUT);
+  pinMode(STATE_BUTTON, INPUT);
+  pinMode(TIME_BUTTON, INPUT);
   pinMode(HEAT_PIN0, OUTPUT);
   pinMode(HEAT_PIN1, OUTPUT);
   pinMode(MOTOR_PIN, OUTPUT);
@@ -494,13 +497,28 @@ void loop() {
   elapsed_time = millis() - start_time;
 
   /* advance roast state on button push */
-  if (digitalRead(BUTTON_PIN) == HIGH) {
+  if (digitalRead(STATE_BUTTON) == HIGH) {
     if (elapsed_time > last_change) {
-      advance_roast();
       last_change = elapsed_time + 500;
+      advance_roast();
 #ifdef DEBUG
       Serial.print(millis());
-      Serial.println(": Button pushed");
+      Serial.println(": State button pushed");
+#endif
+    }
+  }
+
+  /* time increase button */
+  if (digitalRead(TIME_BUTTON) == HIGH) {
+    if (elapsed_time > last_change) {
+      last_change = elapsed_time + 500;
+      roast_time += 10 * 1000;
+#ifdef DEBUG
+      Serial.print(millis());
+      Serial.println(": Time button pushed");
+      Serial.print("Roast time is ");
+      Serial.print(ms_to_min(roast_time));
+      Serial.println();
 #endif
     }
   }
@@ -602,7 +620,7 @@ void loop() {
     if (elapsed_time > min_to_ms(FAN_FULL_TIME)) fan_full();
 
     /* if ROAST_TIME reached, start cooling */    
-    if ((elapsed_time - roast_start) > min_to_ms(ROAST_TIME)) advance_roast();
+    if ((elapsed_time - roast_start) > roast_time) advance_roast();
     break;
   case ROAST_COOLING:
     /* turn off heat, max fans until cool */
