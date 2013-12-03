@@ -171,8 +171,8 @@ void set_motor(uint8_t state);
 void set_fan(int percent);
 double get_temp(int i);
 double get_avg_temp();
-double calculate_mean(double data[]);
-double calculate_standard_deviation(double data[], double mean);
+double calculate_mean(double data[], int size);
+double calculate_standard_deviation(double data[], double mean, int size);
 void add_sample(double sample);
 
 /* math functions */
@@ -189,17 +189,15 @@ int percent_to_duty(int percent) {
   return 255 * (percent / 100.);
 }
 
-double calculate_mean(double data[]) {
+double calculate_mean(double data[], int size) {
   /* calculates the mean of an array of data */
-  int size = sizeof(data) / sizeof(double);
   double mean = 0.0;
   for (int i = 0; i < size; i++) mean += data[i];
   return mean / size;
 }
 
-double calculate_standard_deviation(double data[], double mean) {
+double calculate_standard_deviation(double data[], double mean, int size) {
   /* calculates the standard deviation of an array of data */
-  int size = sizeof(data) / sizeof(double);
   double stddev_sum = 0.0;
   for (int i = 0; i < size; i++) stddev_sum += square(data[i] - mean);
   return sqrt(stddev_sum / size);
@@ -207,8 +205,8 @@ double calculate_standard_deviation(double data[], double mean) {
 
 /* sample collection */
 void add_sample(double sample) {
-  double mean = calculate_mean(samples);
-  double stddev = calculate_standard_deviation(samples, mean);
+  double mean = calculate_mean(samples, SAMPLE_SIZE);
+  double stddev = calculate_standard_deviation(samples, mean, SAMPLE_SIZE);
   /* replace sample with prior one if outside our margin of error */
   if ((sample < 10) || (sample > 500) ||
       (sample > (mean + (ERROR_MARGIN * stddev))) ||
@@ -517,7 +515,7 @@ void loop() {
   if (elapsed_time > next_read) {
     next_read += SENSOR_SAMPLING_TIME;
     add_sample(get_avg_temp());
-    internal_temp = calculate_mean(samples);
+    internal_temp = calculate_mean(samples, SAMPLE_SIZE);
 #ifdef LOGGER
     if (log_flag) {
       now = RTC.now();
