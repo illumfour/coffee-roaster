@@ -146,9 +146,12 @@ Adafruit_MAX31855 thermocouple1(THERMO_CLK, THERMO_CS1, THERMO_DO);
 Adafruit_MAX31855 temps[] = {thermocouple0, thermocouple1};
 
 /* data logger */
-File logfile;
+#ifdef LOGGER
+File log_file;
+char log_file_name[] = "LOGGER00.CSV";
 RTC_DS1307 RTC;
 bool log_flag = true;
+#endif
 
 /* variables */
 unsigned long roast_time = min_to_ms(ROAST_TIME);
@@ -355,6 +358,11 @@ double get_avg_temp() {
   return average/NUM_THERMO;
 }
 
+/* file handlers */
+void open_log_file() {
+  log_file = SD.open(log_file_name, FILE_WRITE);
+}
+
 /* roast control */
 void roast_idle() {
   if (roast_state != ROAST_IDLE) {
@@ -434,37 +442,40 @@ void setup() {
 #endif
     log_flag = false;
   }
-#ifdef SERIAL
   if (log_flag) {
+#ifdef SERIAL
     Serial.println("Card initialized");
 #endif
     /* create a new file */
-    char filename[] = "LOGGER00.CSV";
     for (uint8_t i = 0; i < 100; i++) {
-      filename[6] = i/10 + '0';
-      filename[7] = i%10 + '0';
-      if (!SD.exists(filename)) {
+      log_file_name[6] = i/10 + '0';
+      log_file_name[7] = i%10 + '0';
+      if (!SD.exists(log_file_name)) {
 	/* only open a new file if it doesn't exist */
-	logfile = SD.open(filename, FILE_WRITE); 
+	open_log_file();
+	Serial.println(log_file);
 	break;  // leave the loop!
       }
     }
-    if (!logfile) {
+    if (!log_file) {
 #ifdef SERIAL
-      Serial.println("Failed write to logfile");
+      Serial.println("Failed write to log_file");
 #endif
-      return;
+      log_flag = false;
+    } else {
+#ifdef SERIAL
+      Serial.print("Logging to: ");
+      Serial.println(log_file_name);
+#endif
     }
-#ifdef SERIAL
-    Serial.print("Logging to: ");
-    Serial.println(filename);
-#endif
-
-    /* setup RTC */
-    Wire.begin();
-    if (!RTC.begin()) logfile.println("RTC failed");
-#endif
   }
+    /* setup RTC */
+  if (log_flag) {
+    Wire.begin();
+    if (!RTC.begin()) log_file.println("RTC failed");
+    log_file.close();
+  }
+#endif
 
   /* begin idling */
   roast_idle();
@@ -479,7 +490,7 @@ void setup() {
   Serial.print(start_time);
   Serial.println(" = start time");
 #endif
-} 
+}
 
 /* main Arduino loop */
 void loop() {
@@ -519,31 +530,33 @@ void loop() {
     next_read += SENSOR_SAMPLING_TIME;
     add_sample(get_avg_temp());
     internal_temp = calculate_mean(samples, SAMPLE_SIZE);
+    Serial.println(internal_temp);
 #ifdef LOGGER
-    if (log_flag) {
+    if (log_flag) open_log_file();
+    if (log_file) {
       now = RTC.now();
-      logfile.print(now.unixtime());
-      logfile.print(COMMA);
-      logfile.print(now.year(), DEC);
-      logfile.print("/");
-      logfile.print(now.month(), DEC);
-      logfile.print("/");
-      logfile.print(now.day(), DEC);
-      logfile.print(" ");
-      logfile.print(now.hour(), DEC);
-      logfile.print(":");
-      logfile.print(now.minute(), DEC);
-      logfile.print(":");
-      logfile.print(now.second(), DEC);
-      logfile.print(COMMA);
-      logfile.print(ms_to_min(elapsed_time));
-      logfile.print(COMMA);
-      logfile.print(internal_temp);
-      logfile.print(COMMA);
-      logfile.print(get_temp(0));
-      logfile.print(COMMA);
-      logfile.print(get_temp(1));
-      logfile.print(COMMA);
+      log_file.print(now.unixtime());
+      log_file.print(COMMA);
+      log_file.print(now.year(), DEC);
+      log_file.print("/");
+      log_file.print(now.month(), DEC);
+      log_file.print("/");
+      log_file.print(now.day(), DEC);
+      log_file.print(" ");
+      log_file.print(now.hour(), DEC);
+      log_file.print(":");
+      log_file.print(now.minute(), DEC);
+      log_file.print(":");
+      log_file.print(now.second(), DEC);
+      log_file.print(COMMA);
+      log_file.print(ms_to_min(elapsed_time));
+      log_file.print(COMMA);
+      log_file.print(internal_temp);
+      log_file.print(COMMA);
+      log_file.print(get_temp(0));
+      log_file.print(COMMA);
+      log_file.print(get_temp(1));
+      log_file.print(COMMA);
       switch (fan_state) {
       case FAN_IDLE:
 	percent = 0; break;
@@ -552,9 +565,10 @@ void loop() {
       case FAN_FULL: 
 	percent = FAN_FULL_PERCENT; break;
       }
-      logfile.print(percent);
-      logfile.print(COMMA);
-      logfile.println(roast_state);
+      log_file.print(percent);
+      log_file.print(COMMA);
+      log_file.println(roast_state);
+      log_file.close();
     }
 #endif
 #ifdef SERIAL
