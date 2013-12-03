@@ -23,8 +23,6 @@
    Time 0      25      50      75      100
 
    TODO:
-   - Get button input for: increase time, change roast
-   - Add logging components via Serial/shield
    - Run code by Dr. Rinker, Erik, Jordan
    - Add display: NHD-0420D3Z-FL-GBW
    - Add LED status lights
@@ -81,24 +79,27 @@ typedef enum ROAST_STATE {
 typedef enum HEAT_STATE {
   HEAT_IDLE,
   HEAT_FULL,
+  HEAT_COUNT,
 } heatState_t;
 
 typedef enum FAN_STATE {
   FAN_IDLE,
   FAN_PARTIAL,
   FAN_FULL,
+  FAN_COUNT,
 } fanState_t;
 
 typedef enum MOTOR_STATE {
   MOTOR_IDLE,
   MOTOR_FULL,
+  MOTOR_COUNT,
 } motorState_t;
 
 /* state variables */
-roastState_t roast_state = ROAST_IDLE;
-heatState_t heat_state = HEAT_IDLE;
-fanState_t fan_state = FAN_IDLE;
-motorState_t motor_state = MOTOR_IDLE;
+roastState_t roast_state = ROAST_COUNT;
+heatState_t heat_state = HEAT_COUNT;
+fanState_t fan_state = FAN_COUNT;
+motorState_t motor_state = MOTOR_COUNT;
 
 /* pins */
 const int DATA_LOG_PIN = 7;  /* Digital */
@@ -144,6 +145,7 @@ Adafruit_MAX31855 temps[] = {thermocouple0, thermocouple1};
 /* data logger */
 File logfile;
 RTC_DS1307 RTC;
+bool log_flag = true;
 
 /* variables */
 unsigned long roast_time = min_to_ms(ROAST_TIME);
@@ -332,25 +334,11 @@ void motor_full() {
 
 /* thermocouple access */
 double get_temp(int i) {
-  double temp = temps[i].readCelsius();
-  while (isnan(temp)) {
-    /* discard all errors, if problematic, add limit */
+  double temp = 0;
+  do {
+    temp = temps[i].readCelsius();
     delay(10);
-#ifdef DEBUG
-    Serial.print(millis());
-    Serial.print(": Thermocouple error on ");
-    Serial.print(i);
-    Serial.println();
-#endif
-  }
-#ifdef TEMPS
-  Serial.print(millis());
-  Serial.print(": Temp ");
-  Serial.print(i);
-  Serial.print(" = ");
-  Serial.print(temp);
-  Serial.println();
-#endif
+  } while (isnan(temp));
   return temp;
 }
 
@@ -443,37 +431,39 @@ void setup() {
 #ifdef SERIAL
     Serial.println("Card failed, or not present");
 #endif
-    return;
+    log_flag = false;
   }
 #ifdef SERIAL
-  Serial.println("Card initialized");
+  if (log_flag) {
+    Serial.println("Card initialized");
 #endif
-  /* create a new file */
-  char filename[] = "LOGGER00.CSV";
-  for (uint8_t i = 0; i < 100; i++) {
-    filename[6] = i/10 + '0';
-    filename[7] = i%10 + '0';
-    if (!SD.exists(filename)) {
-      /* only open a new file if it doesn't exist */
-      logfile = SD.open(filename, FILE_WRITE); 
-      break;  // leave the loop!
+    /* create a new file */
+    char filename[] = "LOGGER00.CSV";
+    for (uint8_t i = 0; i < 100; i++) {
+      filename[6] = i/10 + '0';
+      filename[7] = i%10 + '0';
+      if (!SD.exists(filename)) {
+	/* only open a new file if it doesn't exist */
+	logfile = SD.open(filename, FILE_WRITE); 
+	break;  // leave the loop!
+      }
     }
-  }
-  if (!logfile) {
+    if (!logfile) {
 #ifdef SERIAL
-    Serial.println("Failed write to logfile");
+      Serial.println("Failed write to logfile");
 #endif
-    return;
-  }
+      return;
+    }
 #ifdef SERIAL
-  Serial.print("Logging to: ");
-  Serial.println(filename);
+    Serial.print("Logging to: ");
+    Serial.println(filename);
 #endif
 
-  /* setup RTC */
-  Wire.begin();
-  if (!RTC.begin()) logfile.println("RTC failed");
+    /* setup RTC */
+    Wire.begin();
+    if (!RTC.begin()) logfile.println("RTC failed");
 #endif
+  }
 
   /* begin idling */
   roast_idle();
@@ -529,40 +519,42 @@ void loop() {
     add_sample(get_avg_temp());
     internal_temp = calculate_mean(samples);
 #ifdef LOGGER
-    now = RTC.now();
-    logfile.print(now.unixtime());
-    logfile.print(COMMA);
-    logfile.print(now.year(), DEC);
-    logfile.print("/");
-    logfile.print(now.month(), DEC);
-    logfile.print("/");
-    logfile.print(now.day(), DEC);
-    logfile.print(" ");
-    logfile.print(now.hour(), DEC);
-    logfile.print(":");
-    logfile.print(now.minute(), DEC);
-    logfile.print(":");
-    logfile.print(now.second(), DEC);
-    logfile.print(COMMA);
-    logfile.print(ms_to_min(elapsed_time));
-    logfile.print(COMMA);
-    logfile.print(internal_temp);
-    logfile.print(COMMA);
-    logfile.print(get_temp(0));
-    logfile.print(COMMA);
-    logfile.print(get_temp(1));
-    logfile.print(COMMA);
-    switch (fan_state) {
-    case FAN_IDLE:
-      percent = 0; break;
-    case FAN_PARTIAL:
-      percent = FAN_PARTIAL_PERCENT; break;
-    case FAN_FULL: 
-      percent = FAN_FULL_PERCENT; break;
+    if (log_flag) {
+      now = RTC.now();
+      logfile.print(now.unixtime());
+      logfile.print(COMMA);
+      logfile.print(now.year(), DEC);
+      logfile.print("/");
+      logfile.print(now.month(), DEC);
+      logfile.print("/");
+      logfile.print(now.day(), DEC);
+      logfile.print(" ");
+      logfile.print(now.hour(), DEC);
+      logfile.print(":");
+      logfile.print(now.minute(), DEC);
+      logfile.print(":");
+      logfile.print(now.second(), DEC);
+      logfile.print(COMMA);
+      logfile.print(ms_to_min(elapsed_time));
+      logfile.print(COMMA);
+      logfile.print(internal_temp);
+      logfile.print(COMMA);
+      logfile.print(get_temp(0));
+      logfile.print(COMMA);
+      logfile.print(get_temp(1));
+      logfile.print(COMMA);
+      switch (fan_state) {
+      case FAN_IDLE:
+	percent = 0; break;
+      case FAN_PARTIAL:
+	percent = FAN_PARTIAL_PERCENT; break;
+      case FAN_FULL: 
+	percent = FAN_FULL_PERCENT; break;
+      }
+      logfile.print(percent);
+      logfile.print(COMMA);
+      logfile.println(roast_state);
     }
-    logfile.print(percent);
-    logfile.print(COMMA);
-    logfile.println(roast_state);
 #endif
 #ifdef SERIAL
     Serial.println(ms_to_min(elapsed_time));
