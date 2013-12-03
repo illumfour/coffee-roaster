@@ -102,18 +102,21 @@ fanState_t fan_state = FAN_COUNT;
 motorState_t motor_state = MOTOR_COUNT;
 
 /* pins */
-const int DATA_LOG_PIN = 7;  /* Digital */
-const int STATE_BUTTON = 8;  /* Digital */
-const int TIME_BUTTON = 2;  /* Digital */
-const int FAN_PIN = 9;  /* PWM one of Digital 3, 5, 6, 9, 10, or 11 */
-const int MOTOR_PIN = 10;  /* PWM */
-const int HEAT_PIN0 = 11;  /* Digital */
-const int HEAT_PIN1 = 12;  /* Digital */
+const int HEAT_PIN0 = 0;  /* Digital */
+const int HEAT_PIN1 = 1;  /* Digital */
+const int MOTOR_PIN = 2;  /* PWM */
+const int FAN_PIN = 3;  /* PWM one of Digital 3, 5, 6, 9, 10, or 11 */
 
-const int THERMO_DO = 3;  /* Digital */
-const int THERMO_CS0 = 4;  /* Digital */
-const int THERMO_CLK = 5;  /* Digital */
-const int THERMO_CS1 = 6;  /* Digital */
+const int THERMO_CLK = 4;  /* Digital */
+const int THERMO_DO = 5;  /* Digital */
+const int THERMO_CS0 = 6;  /* Digital */
+const int THERMO_CS1 = 7;  /* Digital */
+
+const int TIME_BUTTON = 8;  /* Digital */
+const int STATE_BUTTON = 9;  /* Digital */
+const int DATA_LOG_PIN = 10;  /* Digital */
+/* note that SD communication takes pins 11, 12, and 13 as per
+   http://arduino.cc/en/Reference/SDCardNotes */
 
 /* constants */
 const int SAMPLE_SIZE = 4;
