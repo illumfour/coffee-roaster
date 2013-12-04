@@ -82,13 +82,6 @@ typedef enum HEAT_STATE {
   HEAT_COUNT,
 } heatState_t;
 
-typedef enum FAN_STATE {
-  FAN_IDLE,
-  FAN_PARTIAL,
-  FAN_FULL,
-  FAN_COUNT,
-} fanState_t;
-
 typedef enum MOTOR_STATE {
   MOTOR_IDLE,
   MOTOR_FULL,
@@ -98,14 +91,12 @@ typedef enum MOTOR_STATE {
 /* state variables */
 roastState_t roast_state = ROAST_COUNT;
 heatState_t heat_state = HEAT_COUNT;
-fanState_t fan_state = FAN_COUNT;
 motorState_t motor_state = MOTOR_COUNT;
 
 /* pins */
 const int HEAT_PIN0 = 0;  /* Digital */
 const int HEAT_PIN1 = 1;  /* Digital */
 const int MOTOR_PIN = 2;  /* PWM */
-const int FAN_PIN = 3;  /* PWM one of Digital 3, 5, 6, 9, 10, or 11 */
 
 const int THERMO_CLK = 4;  /* Digital */
 const int THERMO_DO = 5;  /* Digital */
@@ -133,10 +124,6 @@ const double HEAT_FULL_TIME = 0.25 * ROAST_TIME;
 const double RAMP_TIME_STEP = (double)HEAT_FULL_TIME / RAMP_STEPS;
 const double RAMP_HEAT_STEP = (double)(TEMP_MAX - TEMP_READY) / RAMP_STEPS;
 const int SENSOR_SAMPLING_TIME = 1000;  /* ms */
-const double FAN_FULL_TIME = 0.5 * ROAST_TIME;
-
-const int FAN_PARTIAL_PERCENT = 50;
-const int FAN_FULL_PERCENT = 100;
 const char COMMA = ',';
 
 /* thermocouples */
@@ -174,7 +161,6 @@ double ms_to_min(unsigned long ms);
 int percent_to_duty(int percent);
 void set_heat(uint8_t state);
 void set_motor(uint8_t state);
-void set_fan(int percent);
 double get_temp(int i);
 double get_avg_temp();
 double calculate_mean(double data[], int size);
@@ -259,52 +245,6 @@ void heat_full() {
     Serial.print(millis());
     Serial.println(": Turning on heat");
 #endif
-    if (fan_state == FAN_IDLE) {
-      /* ensures fan is at least at partial */
-      fan_partial();
-#ifdef DEBUG
-      Serial.print(millis());
-      Serial.println(": Turning fan to partial");
-#endif
-    }
-  }
-}
-/* fan control */
-void set_fan(int percent) {
-  /* PWM f ~= 490 Hz */
-  analogWrite(FAN_PIN, percent_to_duty(percent));
-}
-
-void fan_idle() {
-  if (fan_state != FAN_IDLE) {
-    set_fan(0);
-    fan_state = FAN_IDLE;
-#ifdef DEBUG
-    Serial.print(millis());
-    Serial.println(": Idling fan");
-#endif
-  }
-}
-
-void fan_partial() {
-  if (fan_state != FAN_PARTIAL) {
-    set_fan(FAN_PARTIAL_PERCENT);
-    fan_state = FAN_PARTIAL;
-#ifdef DEBUG
-    Serial.print(millis());
-    Serial.println(": Setting fan to partial");
-#endif
- }
-}
-
-void fan_full() {
-  if (fan_state != FAN_FULL) {
-    set_fan(FAN_FULL_PERCENT);
-    fan_state = FAN_FULL;
-#ifdef DEBUG
-    Serial.print(millis());
-    Serial.println(": Setting fan to full");
-#endif
   }
 }
 
@@ -368,7 +308,6 @@ void roast_idle() {
   if (roast_state != ROAST_IDLE) {
     roast_state = ROAST_IDLE;
     heat_idle();
-    fan_idle();
     motor_idle();
 #ifdef DEBUG
     Serial.print(millis());
@@ -557,16 +496,6 @@ void loop() {
       log_file.print(COMMA);
       log_file.print(get_temp(1));
       log_file.print(COMMA);
-      switch (fan_state) {
-      case FAN_IDLE:
-	percent = 0; break;
-      case FAN_PARTIAL:
-	percent = FAN_PARTIAL_PERCENT; break;
-      case FAN_FULL: 
-	percent = FAN_FULL_PERCENT; break;
-      }
-      log_file.print(percent);
-      log_file.print(COMMA);
       log_file.println(roast_state);
       log_file.close();
     }
@@ -579,11 +508,9 @@ void loop() {
   switch (roast_state) {
   case ROAST_IDLE:
     heat_idle();
-    fan_idle();
     motor_idle();
     break;
   case ROAST_PREHEAT:
-    fan_partial();
     motor_full();
     if (internal_temp < (TEMP_READY - TEMP_STEP)) {
       /* turn on heat if not hot enough */
@@ -623,16 +550,12 @@ void loop() {
     if (internal_temp > TEMP_MAX) heat_idle();
     else if (internal_temp < (TEMP_MAX - TEMP_STEP)) heat_full();
 
-    /* max fan at appropriate time */
-    if (elapsed_time > min_to_ms(FAN_FULL_TIME)) fan_full();
-
     /* if ROAST_TIME reached, start cooling */    
     if ((elapsed_time - roast_start) > roast_time) advance_roast();
     break;
   case ROAST_COOLING:
-    /* turn off heat, max fans until cool */
+    /* turn off heat */
     heat_idle();
-    fan_full();
     motor_full();
     if (internal_temp < TEMP_COOL) {
     /* TODO Indicate cooldown is done */
