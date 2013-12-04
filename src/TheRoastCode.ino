@@ -299,9 +299,11 @@ double get_avg_temp() {
 }
 
 /* file handlers */
+#ifdef logger
 void open_log_file() {
   log_file = SD.open(log_file_name, FILE_WRITE);
 }
+#endif
 
 /* roast control */
 void roast_idle() {
