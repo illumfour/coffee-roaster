@@ -45,7 +45,6 @@
 
  */
 
-#define LOGGER
 #define SERIAL
 
 #ifdef SERIAL
@@ -95,9 +94,9 @@ motorState_t motor_state = MOTOR_COUNT;
 bool ready = false;
 
 /* pins */
-const int HEAT_PIN0 = 0;  /* Digital */
-const int HEAT_PIN1 = 1;  /* Digital */
-const int MOTOR_PIN = 2;  /* PWM */
+const int HEAT_PIN0 = 10;  /* Digital */
+const int HEAT_PIN1 = 11;  /* Digital */
+const int MOTOR_PIN = 12;  /* PWM */
 
 const int THERMO_CLK = 4;  /* Digital */
 const int THERMO_DO = 5;  /* Digital */
@@ -106,7 +105,9 @@ const int THERMO_CS1 = 7;  /* Digital */
 
 const int TIME_BUTTON = 8;  /* Digital */
 const int STATE_BUTTON = 9;  /* Digital */
+#ifdef LOGGER
 const int DATA_LOG_PIN = 10;  /* Digital */
+#endif
 /* note that SD communication takes pins 11, 12, and 13 as per
    http://arduino.cc/en/Reference/SDCardNotes */
 
@@ -373,7 +374,9 @@ void setup() {
 #endif
 
   /* set appropriate pin modes */
+#ifdef LOGGER
   pinMode(DATA_LOG_PIN, OUTPUT);
+#endif
   pinMode(STATE_BUTTON, INPUT);
   pinMode(TIME_BUTTON, INPUT);
   pinMode(HEAT_PIN0, OUTPUT);
@@ -440,8 +443,10 @@ void setup() {
 
 /* main Arduino loop */
 void loop() {
+#ifdef logger
   DateTime now;
   int percent = 0;
+#endif
   elapsed_time = millis() - start_time;
 
   /* advance roast state on button push */
