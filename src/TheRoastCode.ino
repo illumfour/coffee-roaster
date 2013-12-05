@@ -113,7 +113,7 @@ const int DATA_LOG_PIN = 10;  /* Digital */
 
 /* constants */
 const int SAMPLE_SIZE = 4;
-const int ERROR_MARGIN = 4;
+const int ERROR_MARGIN = 3;
 const int RAMP_STEPS = 40;  /* divisor of ramp time and temp */
 
 const int TEMP_COOL = 75;
@@ -167,7 +167,7 @@ double get_temp(int i);
 double get_avg_temp();
 double calculate_mean(double data[], int size);
 double calculate_standard_deviation(double data[], double mean, int size);
-void add_sample(double sample);
+void add_sample();
 
 /* math functions */
 unsigned long min_to_ms(double minutes) {
@@ -193,19 +193,36 @@ double calculate_mean(double data[], int size) {
 double calculate_standard_deviation(double data[], double mean, int size) {
   /* calculates the standard deviation of an array of data */
   double stddev_sum = 0.0;
+  double stddev = 0.0;
   for (int i = 0; i < size; i++) stddev_sum += square(data[i] - mean);
-  return sqrt(stddev_sum / size);
+  stddev = sqrt(stddev_sum / size);
+  if (stddev < 3) stddev = 3;
+  return stddev;
 }
 
 /* sample collection */
-void add_sample(double sample) {
+void add_sample() {
   double mean = calculate_mean(samples, SAMPLE_SIZE);
   double stddev = calculate_standard_deviation(samples, mean, SAMPLE_SIZE);
+  double sample = 0.0;
+#ifdef DEBUG
+  Serial.print(millis());
+  Serial.print(": mean = ");
+  Serial.print(mean);
+  Serial.print(", stddev = ");
+  Serial.println(stddev);
+#endif
   /* replace sample with prior one if outside our margin of error */
-  if ((sample < 10) || (sample > 500) ||
-      (sample > (mean + (ERROR_MARGIN * stddev))) ||
-      (sample < (mean - (ERROR_MARGIN * stddev))))
-    sample = samples[(sample_index - 1) % SAMPLE_SIZE];
+  do {
+    sample = get_avg_temp();
+#ifdef DEBUG
+    Serial.print(millis());
+    Serial.print(": raw temp = ");
+    Serial.println(sample);
+#endif
+  } while ((sample < 10.) || (sample > 500.) ||
+	   (sample > (mean + (ERROR_MARGIN * stddev))) ||
+	   (sample < (mean - (ERROR_MARGIN * stddev))));
   samples[sample_index] = sample;
   sample_index = (sample_index + 1) % SAMPLE_SIZE;
 }
@@ -291,16 +308,6 @@ double get_temp(int i) {
 double get_avg_temp() {
   double average = 0.0;
   for (int i = 0; i < NUM_THERMO; i++) average += get_temp(i);
-#ifdef CSV
-  Serial.print("@ ");
-  Serial.print(ms_to_min(elapsed_time));
-  Serial.print(COMMA);
-  Serial.print(ms_to_min(elapsed_time - roast_start));
-  Serial.print(COMMA);
-  Serial.print(average/NUM_THERMO);
-  Serial.print(COMMA);
-  Serial.println(roast_state);
-#endif
   return average/NUM_THERMO;
 }
 
@@ -479,8 +486,18 @@ void loop() {
   /* read sensor */
   if (elapsed_time > next_read) {
     next_read += SENSOR_SAMPLING_TIME;
-    add_sample(get_avg_temp());
+    add_sample();
     internal_temp = calculate_mean(samples, SAMPLE_SIZE);
+#ifdef CSV
+  Serial.print("@ ");
+  Serial.print(ms_to_min(elapsed_time));
+  Serial.print(COMMA);
+  Serial.print(ms_to_min(elapsed_time - roast_start));
+  Serial.print(COMMA);
+  Serial.print(internal_temp);
+  Serial.print(COMMA);
+  Serial.println(roast_state);
+#endif
 #ifdef LOGGER
     if (log_flag) open_log_file();
     if (log_file) {
