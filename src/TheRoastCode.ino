@@ -51,7 +51,7 @@
 #ifdef SERIAL
 
 #define DEBUG
-#define TEMPS
+#define CSV
 
 #endif
 
@@ -92,6 +92,7 @@ typedef enum MOTOR_STATE {
 roastState_t roast_state = ROAST_COUNT;
 heatState_t heat_state = HEAT_COUNT;
 motorState_t motor_state = MOTOR_COUNT;
+bool ready = false;
 
 /* pins */
 const int HEAT_PIN0 = 0;  /* Digital */
@@ -289,11 +290,15 @@ double get_temp(int i) {
 double get_avg_temp() {
   double average = 0.0;
   for (int i = 0; i < NUM_THERMO; i++) average += get_temp(i);
-#ifdef TEMPS
-  Serial.print(millis());
-  Serial.print(": Average = ");
+#ifdef CSV
+  Serial.print("@ ");
+  Serial.print(ms_to_min(elapsed_time));
+  Serial.print(COMMA);
+  Serial.print(ms_to_min(elapsed_time - roast_start));
+  Serial.print(COMMA);
   Serial.print(average/NUM_THERMO);
-  Serial.println();
+  Serial.print(COMMA);
+  Serial.println(roast_state);
 #endif
   return average/NUM_THERMO;
 }
@@ -471,7 +476,6 @@ void loop() {
     next_read += SENSOR_SAMPLING_TIME;
     add_sample(get_avg_temp());
     internal_temp = calculate_mean(samples, SAMPLE_SIZE);
-    Serial.println(internal_temp);
 #ifdef LOGGER
     if (log_flag) open_log_file();
     if (log_file) {
@@ -502,9 +506,6 @@ void loop() {
       log_file.close();
     }
 #endif
-#ifdef SERIAL
-    Serial.println(ms_to_min(elapsed_time));
-#endif
   }
 
   switch (roast_state) {
@@ -517,12 +518,18 @@ void loop() {
     if (internal_temp < (TEMP_READY - TEMP_STEP)) {
       /* turn on heat if not hot enough */
       heat_full();
-    } else {
-      /* TODO Indicate ready */
+      if (ready) ready = false;
     }
     if (internal_temp > TEMP_READY) {
       /* turn off heat and motor if hot enough */
       heat_idle();
+      if (!ready) {
+	ready = true;
+#ifdef SERIAL
+      Serial.print(millis());
+      Serial.println(": Ready");
+#endif
+      }
     }
     break;
   case ROAST_RAMP:
