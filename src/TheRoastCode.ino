@@ -46,6 +46,7 @@
  */
 
 #define SERIAL
+#define STDDEV
 
 #ifdef SERIAL
 
@@ -113,7 +114,7 @@ const int DATA_LOG_PIN = 10;  /* Digital */
 
 /* constants */
 const int SAMPLE_SIZE = 4;
-const int ERROR_MARGIN = 3;
+const int ERROR_MARGIN = 5;
 const int RAMP_STEPS = 40;  /* divisor of ramp time and temp */
 
 const int TEMP_COOL = 75;
@@ -167,7 +168,6 @@ double get_temp(int i);
 double get_avg_temp();
 double calculate_mean(double data[], int size);
 double calculate_standard_deviation(double data[], double mean, int size);
-void add_sample();
 
 /* math functions */
 unsigned long min_to_ms(double minutes) {
@@ -202,9 +202,9 @@ double calculate_standard_deviation(double data[], double mean, int size) {
 
 /* sample collection */
 void add_sample() {
+#ifdef STDDEV
   double mean = calculate_mean(samples, SAMPLE_SIZE);
   double stddev = calculate_standard_deviation(samples, mean, SAMPLE_SIZE);
-  double sample = 0.0;
 #ifdef DEBUG
   Serial.print(millis());
   Serial.print(": mean = ");
@@ -212,7 +212,8 @@ void add_sample() {
   Serial.print(", stddev = ");
   Serial.println(stddev);
 #endif
-  /* replace sample with prior one if outside our margin of error */
+#endif
+  double sample = 0.0;
   do {
     sample = get_avg_temp();
 #ifdef DEBUG
@@ -220,9 +221,12 @@ void add_sample() {
     Serial.print(": raw temp = ");
     Serial.println(sample);
 #endif
-  } while ((sample < 10.) || (sample > 500.) ||
-	   (sample > (mean + (ERROR_MARGIN * stddev))) ||
-	   (sample < (mean - (ERROR_MARGIN * stddev))));
+  } while ((sample < 10.) || (sample > 500.)
+#ifdef STDDEV 
+	   || (sample > (mean + (ERROR_MARGIN * stddev)))
+	   || (sample < (mean - (ERROR_MARGIN * stddev)))
+#endif
+	   );
   samples[sample_index] = sample;
   sample_index = (sample_index + 1) % SAMPLE_SIZE;
 }
