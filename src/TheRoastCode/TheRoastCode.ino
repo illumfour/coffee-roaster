@@ -142,6 +142,9 @@ RTC_DS1307 RTC;
 bool log_flag = true;
 #endif
 
+// prototypes
+unsigned long min_to_ms(double minutes);
+
 /* variables */
 unsigned long roast_time = min_to_ms(ROAST_TIME);
 unsigned long start_time = 0;
